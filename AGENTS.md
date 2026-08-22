@@ -270,3 +270,23 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Controlled-input gotcha: ParlayBuilder tests must hold leg state in a wrapper component — a vi.fn() parent never re-renders, so typed characters vanish.
 
 **Out of scope (per plan)**: Portfolio construction (Sprint 14)
+
+## Sprint 12 — Backtesting Engine (completed 2026-08-22)
+
+**Delivered**
+- `ml/backtest.py` — `run_backtest()` replays finished games' predictions into `backtest_results` (idempotent via existing model+game pair); `derive_outcome()` from home/away scores on final games; `evaluate_model()` computes accuracy, Brier score, calibration error (|mean predicted − observed rate|), and Kelly-sized avg ROI → persists a `ModelEvaluation` row
+- ROI is per-bet return on a Kelly stake: win → f×(dec−1), loss → −f (the plan's "ROI includes bet sizing from Kelly")
+- `api/analytics.py`: `POST /api/analytics/run-backtests?model_id=` (404 unknown model), `GET /api/analytics/performance?model_id=` (per-model summary + evaluation history), `GET /api/analytics/portfolio-history` (empty until Sprint 14)
+- Frontend: `Analytics` page + nav link — summary table with accuracy/ROI coloring, per-model evaluation history, "Run Backtests" button with recorded-count feedback
+- Tests: ml/tests/test_backtest.py (+5: outcome mapping, idempotency, edge/kelly-roi math vs manual kelly, exact metric math), tests/test_api_analytics.py (+4)
+
+**Verified**
+- Backend: ruff clean; pytest 161 passed (+9)
+- Frontend: eslint/tsc clean; vitest 82 passed (+3); vite build OK
+
+**Decisions / gotchas**
+- **No schema change**: the plan's "add actual_outcome to games" is derivable from home_score/away_score when status=final; both tables existed since Sprint 1. Auto-triggering = calling run-backtests after collection; the endpoint doubles as the scheduler hook (no separate cron added).
+- Accuracy counts a prediction ≥0.5 as a HOME pick — test data initially assumed otherwise; the engine was right.
+- Fair decimal odds come from the stored prediction's fair_odds_decimal, falling back to 1/p so edge/ROI still compute for bare predictions.
+
+**Out of scope (per plan)**: model retraining (Sprint 13), live deployment (Sprint 13)

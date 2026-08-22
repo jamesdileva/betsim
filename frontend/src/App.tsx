@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
+import Analytics from "./pages/Analytics";
 import Navigation from "./components/Navigation";
 import OnboardingModal from "./components/OnboardingModal";
 import ParlaySimulator from "./pages/ParlaySimulator";
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/" element={<SimulationWorkspace />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/history" element={<ResultsHistory />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/system-plays" element={<SystemPlays />} />
           <Route path="/parlay" element={<ParlaySimulator />} />
           <Route path="/settings" element={<Settings />} />

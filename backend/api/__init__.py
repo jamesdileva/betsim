@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from api.analytics import router as analytics_router
 from api.history import router as history_router
 from api.odds import router as odds_router
 from api.parlay import router as parlay_router
@@ -16,5 +17,6 @@ api_router.include_router(system_plays_router)
 api_router.include_router(parlay_router)
 api_router.include_router(history_router)
 api_router.include_router(odds_router)
+api_router.include_router(analytics_router)
 
 __all__ = ["api_router"]
