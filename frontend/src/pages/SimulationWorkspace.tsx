@@ -5,6 +5,7 @@ import OddsSelector from "../components/OddsSelector";
 import SimulationForm, { type FormValues } from "../components/SimulationForm";
 import SimulationResults from "../components/SimulationResults";
 import ScenarioLibrary from "../components/ScenarioLibrary";
+import StrategyComparison from "../components/StrategyComparison";
 import type { Scenario } from "../data/scenarios";
 import { useSimulation } from "../hooks/useSimulation";
 import { createStrategy } from "../services/strategiesApi";
@@ -128,7 +129,10 @@ export default function SimulationWorkspace() {
             {error}
           </div>
         ) : (
-          <SimulationResults result={result} isRunning={status === "loading"} />
+          <>
+            <SimulationResults result={result} isRunning={status === "loading"} />
+            {result && <StrategyComparison params={lastParams} />}
+          </>
         )}
       </div>
 

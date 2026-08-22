@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import OnboardingModal from "./components/OnboardingModal";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import ParlaySimulator from "./pages/ParlaySimulator";
 import ResultsHistory from "./pages/ResultsHistory";
 import Settings from "./pages/Settings";
 import Strategies from "./pages/Strategies";
@@ -23,7 +23,7 @@ export default function App() {
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/history" element={<ResultsHistory />} />
           <Route path="/system-plays" element={<SystemPlays />} />
-          <Route path="/parlay" element={<PlaceholderPage title="Parlay Simulator" sprint="11" />} />
+          <Route path="/parlay" element={<ParlaySimulator />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<p className="p-6 text-text-muted">Page not found.</p>} />
         </Routes>

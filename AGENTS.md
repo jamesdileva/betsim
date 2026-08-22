@@ -248,3 +248,25 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Seed fixed at 42 in the UI call so repeated calibrations are reproducible.
 
 **Out of scope (per plan)**: ML model integration (Sprint 13), historical tracking UI (Sprint 12)
+
+## Sprint 11 — Parlay Simulator + Bankroll Comparison (completed 2026-08-22)
+
+**Delivered**
+- `pages/ParlaySimulator.tsx` — replaces the placeholder route: leg builder, bankroll/bet size/strategy controls, live combined-math preview (prob × payout × EV × break-even computed client-side as legs are typed)
+- `ParlayBuilder` — 2–6 legs with per-leg odds/probability inputs, add/remove, invalid-leg submit blocking
+- `ParlayResults` — combined probability/payout/EV/break-even/ruin cards, negative-EV warning ("you need X% per leg"), ruin >50% warning, distribution histogram
+- `BankrollStrategySelector` — radio toggle component; `KellyCalculator` — live Kelly fraction + edge indicator from any odds/prob pair
+- `StrategyComparison` — runs `/api/simulate` across all four strategies in parallel; table shows win %/avg/median/ruin with danger coloring and a "<half bankroll" warning; embedded below workspace results after a run
+- `utils/kelly.ts` — client-side Kelly mirroring backend math (tested against known values)
+
+**Verified**
+- eslint clean; `tsc -b --noEmit` clean; vitest 79 passed (+16: builder add/remove/edit, kelly formula incl. plus-money/no-edge, comparison rows + strategy override set + low-bankroll warning, page payload/preview/warnings); vite build OK
+- Backend unchanged: pytest 152 passed
+
+**Decisions / gotchas**
+- No backend changes at all this sprint: `/api/parlay/simulate` shipped in Sprint 5, and the plan's `bankroll_strategy`/`kelly_fraction` columns on strategies are redundant — `bet_size_type` exists since Sprint 1 and the Kelly fraction derives from odds+prob client-side.
+- Strategy comparison calls the public simulate endpoint once per strategy rather than adding a dedicated endpoint — 4 parallel requests keep it simple and reuse all existing validation.
+- `DEFAULT_LEG` moved to `types/parlay.ts` to keep ParlayBuilder export-only-components for react-refresh.
+- Controlled-input gotcha: ParlayBuilder tests must hold leg state in a wrapper component — a vi.fn() parent never re-renders, so typed characters vanish.
+
+**Out of scope (per plan)**: Portfolio construction (Sprint 14)
