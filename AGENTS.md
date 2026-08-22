@@ -229,3 +229,22 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Live-odds selection merges *partial* initialValues into the form (only provided keys applied); scenarios still set everything. No-key environments degrade gracefully everywhere (empty lists, "No odds fetched" badge, 503 on refresh).
 
 **Out of scope (per plan)**: ML training (Sprint 13), real-time updates, injury feeds beyond schema
+
+## Sprint 10 — System Plays Engine UI (completed 2026-08-22)
+
+**Delivered**
+- `pages/SystemPlays.tsx` — compact calibration form (odds with bookmaker-implied helper, model probability %, bankroll, strategy + bet size, bets, sims) → "Calibrate Model"; replaces the placeholder route
+- `SystemPlaysResults` — stated/actual/error metric cards, color-coded status (well_calibrated green, underconfident amber, overconfident red), 95% CI display, recommendation text
+- `CalibrationChart` — Recharts stated-vs-actual bars with actual reference line; fixed width/height props for jsdom tests
+- `types/systemPlays.ts` (+ status labels/colors), `services/systemPlaysApi.ts`
+- Backend: added API test asserting calibration results persist through Sprint 4 CRUD (endpoint itself was already built and tested in Sprint 5)
+
+**Verified**
+- Backend: ruff clean; pytest 152 passed (+1)
+- Frontend: eslint/tsc clean; vitest 63 passed (+8: chart bars, status coloring matrix, CI/recommendation rendering, page submit payload + error state); vite build OK
+
+**Decisions / gotchas**
+- No new backend engine needed — the plan's `calibrate_model` shipped as the Bernoulli-draw approach in Sprint 5's `/api/system-plays`; this sprint only wired the UI and added the persistence assertion.
+- Seed fixed at 42 in the UI call so repeated calibrations are reproducible.
+
+**Out of scope (per plan)**: ML model integration (Sprint 13), historical tracking UI (Sprint 12)

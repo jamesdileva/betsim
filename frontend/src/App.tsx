@@ -7,6 +7,7 @@ import ResultsHistory from "./pages/ResultsHistory";
 import Settings from "./pages/Settings";
 import Strategies from "./pages/Strategies";
 import SimulationWorkspace from "./pages/SimulationWorkspace";
+import SystemPlays from "./pages/SystemPlays";
 import { completeOnboarding, hasCompletedOnboarding } from "./services/settings";
 
 export default function App() {
@@ -21,10 +22,7 @@ export default function App() {
           <Route path="/" element={<SimulationWorkspace />} />
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/history" element={<ResultsHistory />} />
-          <Route
-            path="/system-plays"
-            element={<PlaceholderPage title="System Plays" sprint="10" />}
-          />
+          <Route path="/system-plays" element={<SystemPlays />} />
           <Route path="/parlay" element={<PlaceholderPage title="Parlay Simulator" sprint="11" />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<p className="p-6 text-text-muted">Page not found.</p>} />

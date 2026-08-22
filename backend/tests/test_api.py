@@ -146,6 +146,25 @@ class TestSystemPlays:
             <= body["confidence_interval_high"]
         )
 
+    def test_calibration_result_persisted(self, db, client) -> None:
+        from crud.system_plays import list_calibration_results
+
+        payload = {
+            "odds_american": -110,
+            "win_probability": 0.60,
+            "bankroll": 1000.0,
+            "bet_size": 100.0,
+            "num_bets": 100,
+            "num_simulations": 5000,
+            "seed": 7,
+        }
+        response = client.post("/api/system-plays", json=payload)
+        assert response.status_code == 200
+
+        rows = list_calibration_results(db)
+        assert len(rows) == 1
+        assert rows[0].stated_probability == pytest.approx(0.6)
+
     def test_validation_error(self, client) -> None:
         bad = {
             "odds_american": -110,
