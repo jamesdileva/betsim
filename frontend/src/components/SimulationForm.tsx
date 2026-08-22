@@ -100,9 +100,25 @@ export default function SimulationForm({ defaults, initialValues, onRun }: Simul
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setState(stateFrom(defaults, initialValues));
+    if (!initialValues) return;
+    // merge semantics: only keys present on initialValues are applied, so a
+    // live-odds pick can change just the odds while scenarios set everything
+    setState((prev) => {
+      const next = { ...prev };
+      const apply = (key: keyof FormState, value: number | string | undefined) => {
+        if (value !== undefined) next[key] = String(value);
+      };
+      apply("oddsAmerican", initialValues.oddsAmerican);
+      apply("winProbabilityPct", initialValues.winProbabilityPct);
+      apply("bankroll", initialValues.bankroll);
+      apply("betSize", initialValues.betSize);
+      if (initialValues.betSizeType) next.betSizeType = initialValues.betSizeType;
+      apply("numBets", initialValues.numBets);
+      apply("numSimulations", initialValues.numSimulations);
+      return next;
+    });
     setErrors({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [initialValues]);
 
   const impliedProb = useMemo(() => {

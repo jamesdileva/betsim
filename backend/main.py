@@ -4,13 +4,25 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import api_router
+from config import settings
 from database import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    yield
+
+    scheduler = None
+    if settings.theoddsapi_api_key:
+        from services.pipeline import SchedulerService
+
+        scheduler = SchedulerService()
+        scheduler.start()
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.stop()
 
 
 app = FastAPI(

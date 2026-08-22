@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import ExportButton from "../components/ExportButton";
+import OddsSelector from "../components/OddsSelector";
 import SimulationForm, { type FormValues } from "../components/SimulationForm";
 import SimulationResults from "../components/SimulationResults";
 import ScenarioLibrary from "../components/ScenarioLibrary";
@@ -84,6 +85,13 @@ export default function SimulationWorkspace() {
         </div>
         <div className="rounded-lg border border-border bg-bg-secondary p-5">
           <ScenarioLibrary onApply={handleApplyScenario} />
+        </div>
+        <div className="rounded-lg border border-border bg-bg-secondary p-5">
+          <OddsSelector
+            onApply={(oddsAmerican) =>
+              setScenarioValues((prev) => ({ ...(prev ?? {}), oddsAmerican }))
+            }
+          />
         </div>
       </div>
 

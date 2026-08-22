@@ -14,7 +14,7 @@ class Team(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), index=True)
     sport: Mapped[str] = mapped_column(String(20), index=True)
-    league: Mapped[str] = mapped_column(String(50), index=True)
+    league: Mapped[str | None] = mapped_column(String(50), index=True)
     city: Mapped[str | None] = mapped_column(String(50))
     abbreviation: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

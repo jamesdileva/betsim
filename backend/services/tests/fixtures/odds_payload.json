@@ -1,0 +1,40 @@
+[
+  {
+    "id": "game-abc-123",
+    "sport_key": "americanfootball_nfl",
+    "sport_title": "NFL",
+    "commence_time": "2026-09-10T17:15:00Z",
+    "home_team": "Kansas City Chiefs",
+    "away_team": "Buffalo Bills",
+    "bookmakers": [
+      {
+        "key": "draftkings",
+        "title": "DraftKings",
+        "last_update": "2026-08-22T12:00:00Z",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              { "name": "Kansas City Chiefs", "price": -150 },
+              { "name": "Buffalo Bills", "price": 130 }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "fanduel",
+        "title": "FanDuel",
+        "last_update": "2026-08-22T11:30:00Z",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              { "name": "Kansas City Chiefs", "price": -140 },
+              { "name": "Buffalo Bills", "price": 120 }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

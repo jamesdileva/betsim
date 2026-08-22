@@ -204,3 +204,28 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Hook state assertions need `waitFor` after awaited mutations (React batches the rerender).
 
 **Out of scope (per plan)**: System Plays UI (Sprint 10), Parlay Simulator (Sprint 11). MVP milestone complete.
+
+## Sprint 9 — Data Collection & Features (completed 2026-08-22)
+
+**Delivered**
+- `services/odds_api.py` — TheOddsAPI v4 client (httpx, h2h/american), payload shape validation, 3-retry exponential backoff
+- `services/collector.py` — `BaseCollector` ABC + `TheOddsApiCollector` (transport injectable for tests)
+- `services/normalizer.py` — provider game → canonical GameCreate/GameOddsCreate/TeamCreate + raw JSON audit; moneyline-only MVP; invalid prices skipped
+- `services/pipeline.py` — `collect_and_store()` persists with duplicate detection (same game/book/market/timestamp → skip); `SchedulerService` background task, started in lifespan only when an API key is configured
+- `services/cache.py` — TTL cache (2h stale threshold)
+- `ml/features/schema.py` — 30+ named features across odds/time/history/injury groups; `engineering.extract_features()` computes odds-derived (incl. exact no-vig math) + time features now, reserves the rest as None
+- `api/odds.py` — `GET /api/odds/games?sport=` serves stored games w/ stale flag; `POST /api/odds/refresh` returns 503 with guidance when no key
+- Frontend: `OddsSelector` (sport + game dropdowns, home/away side radio) and `LiveOddsBadge` (Live/Stale/never-fetched) in a workspace panel; picking a side fills just the form's odds
+- Migration `85241c685a9b_teams_league_nullable`
+
+**Verified**
+- Backend: ruff clean; pytest 151 passed (+25: client parse/retry, normalizer mapping + dupes, pipeline store/dedupe/line-movement, feature vector completeness + no-vig exactness, API endpoints)
+- Frontend: eslint/tsc clean; vitest 55 passed (+9); vite build OK
+
+**Decisions / gotchas**
+- **Timestamps must be timezone-naive end to end**: aware datetimes round-trip through SQLite as naive, so re-fetched aware timestamps never equaled stored ones — duplicate detection silently failed until `_parse_timestamp` normalized to naive local.
+- `teams.league` was NOT NULL but providers don't always supply it → nullable via migration #2.
+- Feature extraction takes ORM models (`Game`/`GameOdds`), not the Pydantic Read schemas — tests initially passed `get_game()` output and hit AttributeError.
+- Live-odds selection merges *partial* initialValues into the form (only provided keys applied); scenarios still set everything. No-key environments degrade gracefully everywhere (empty lists, "No odds fetched" badge, 503 on refresh).
+
+**Out of scope (per plan)**: ML training (Sprint 13), real-time updates, injury feeds beyond schema
