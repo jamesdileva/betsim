@@ -52,3 +52,21 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - `Portfolio.model_id` FK exists per spec; added convenience `model`/`game` relationships on `Portfolio`/`PortfolioItem` used by ORM inserts.
 
 **Out of scope (per plan)**: CRUD operations (Sprint 4), API endpoints (Sprint 5), simulation logic (Sprint 2)
+
+## Sprint 2 — Monte Carlo Core (completed 2026-08-22)
+
+**Delivered**
+- `backend/simulation/odds.py` — `OddsConversion`: American ↔ Decimal ↔ Implied prob, round-trip helpers, `edge()` (p × decimal − 1)
+- `backend/simulation/kelly.py` — `kelly_criterion()` ((bp − q)/b, clamped to [0,1], 0 on no-edge/degenerate input) + `half_kelly()`
+- `backend/simulation/monte_carlo.py` — `calculate_stake()` (flat / percentage / kelly / half_kelly, capped at bankroll), `simulate_once()` (full trajectory; ruin pads with zeros so batch trajectories stay rectangular), `simulate_batch()` → `SimulationBatchResult` (final bankrolls; trajectories opt-in via `return_trajectories` to keep 100k-run memory sane)
+- Tests: odds conversions + invalid-input cases, Kelly formula vs manual math, seeded determinism, independent expectation replay for a known RNG sequence, statistical sanity (win rate ≈ p over 4k single-bet sims), ruin behavior (all-in at −EV ruins >80%), stake capping, perf test
+
+**Verified**
+- `ruff check`: clean; `pytest`: 53 passed
+- Perf: 1000 sims × 100 bets well under the 500ms target (asserted in-suite)
+
+**Decisions / gotchas**
+- Tech Spec §6's American→Decimal formula is wrong as written (`(odds+100)/abs(odds)`); implemented correctly: positive → `1 + o/100`, negative → `1 + 100/|o|`. Documented in module docstring.
+- `implied_prob_to_american`: boundary p = 0.5 maps to +100 (not −100) so round-trips are exact.
+- Ruined runs pad trajectory with zeros instead of truncating — Sprint 3's percentile math needs equal-length arrays across the batch.
+- Metrics/distribution intentionally deferred to Sprint 3; `simulate_batch` returns raw results only.
