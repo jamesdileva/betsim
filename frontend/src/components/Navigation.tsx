@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const LINKS = [
   { to: "/", label: "Simulation" },
   { to: "/strategies", label: "Strategies" },
+  { to: "/history", label: "History" },
   { to: "/system-plays", label: "System Plays" },
   { to: "/parlay", label: "Parlay" },
   { to: "/settings", label: "Settings" },

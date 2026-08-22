@@ -181,3 +181,26 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Parlay scenario deferred to Sprint 11 when the parlay builder exists.
 
 **Out of scope (per plan)**: strategy saving (Sprint 8), System Plays UI (Sprint 10)
+
+## Sprint 8 — Strategy Management & History (completed 2026-08-22)
+
+**Delivered**
+- Backend: `GET /api/runs` — recent runs with SQL-aggregated summaries (result_count, win_pct, avg_final_bankroll, risk_of_ruin via case-when over stored results); `DELETE /api/runs/{id}` removes run + its results; CRUD `list_run_summaries`/`delete_simulation_run`; `schemas/history.py`
+- Frontend: `types/strategy.ts` (Strategy, StrategyCreateInput, RunSummary), `services/strategiesApi.ts` (strategies + runs), `hooks/useStrategies.ts` (load/save/edit/remove with inline state updates)
+- **Strategies page**: card grid (`StrategyCard`) with Run/Edit/Delete; edit opens `StrategyEditor` modal; Run navigates to workspace with `rerunParams` via router state
+- **Workspace**: "Save Strategy" button (enabled after a run) + naming dialog → POST /api/strategies from the last-run params; Export CSV button
+- **Results History page** (`/history`, new nav link): `ResultsHistoryTable` with text filter across odds/prob/type/date, Re-run (→ workspace with params) and Delete actions; ruin % highlighted red > 25%
+- `utils/csvExport.ts`: metrics section + distribution section with proper escaping; `ExportButton` triggers a Blob download
+
+**Verified**
+- eslint clean; `tsc -b --noEmit` clean; vitest 46 passed (+13: strategy card, hook CRUD state, CSV content + download mechanics incl. jsdom blob stubs, history table filter/actions); vite build OK
+- Backend: ruff clean; pytest 126 passed (+2: summary aggregation math, delete cascades results)
+- Full suite green via root `npm test`
+
+**Decisions / gotchas**
+- History win %/ruin % are computed server-side from persisted per-iteration results (SQL group-by with case-when sums) rather than storing denormalized metrics at save time.
+- Re-run uses React Router `location.state` (params passed on navigate); workspace consumes it once and clears history state so a manual refresh doesn't re-trigger the run.
+- jsdom has no `URL.createObjectURL`/`revokeObjectURL` — tests assign stubs onto URL before spying behavior.
+- Hook state assertions need `waitFor` after awaited mutations (React batches the rerender).
+
+**Out of scope (per plan)**: System Plays UI (Sprint 10), Parlay Simulator (Sprint 11). MVP milestone complete.
