@@ -112,3 +112,27 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Schemas created in Sprint 4 rather than Sprint 5 because acceptance criteria require CRUD to return Pydantic models.
 
 **Out of scope (per plan)**: API endpoints (Sprint 5), frontend integration (Sprint 6)
+
+## Sprint 5 — Backend API (completed 2026-08-22)
+
+**Delivered**
+- `backend/api/` — routers mounted under `/api` via `api_router` in `__init__.py`:
+  - `simulation.py`: `POST /api/simulate`, `POST /api/simulate/{strategy_id}` (saved-strategy runs with optional overrides); persists run + per-iteration results (final bankroll, is_profitable, max_drawdown) through Sprint 4 CRUD
+  - `strategies.py`: full CRUD — 201 on create, 204 on delete, 404s
+  - `system_plays.py`: `POST /api/system-plays` calibration report (stated vs. actual, ±1.96·SE tolerance band, CI, status, recommendation; result persisted)
+  - `parlay.py`: `POST /api/parlay/simulate` — combined probability/payout math + simulation of the parlay as a single effective bet
+- New schemas: `api_simulation.py` (SimulationRequest with odds/bet-size validators, MetricSummary, DistributionData, TrajectoryBands, SimulationResponse), `system_plays.py`, `parlay.py`
+- `/health` now also served at `/api/health`; OpenAPI lists all 7 paths
+
+**Verified**
+- `ruff check`: clean; `pytest`: 124 passed (14 new API tests: full simulate payload shape incl. histogram conservation + band lengths, seeded determinism, 422 validation cases, strategy CRUD cycle, run-from-strategy, calibration within tolerance, exact parlay math)
+- OpenAPI path check via `app.openapi()`
+
+**Decisions / gotchas**
+- System Plays uses dedicated Bernoulli draws at the stated probability (capped at 1M draws) instead of reading win rates off bankroll trajectories: ruin truncation would bias the observed rate. The gap vs. stated is pure sampling noise — exactly the educational point.
+- Parlay legs are folded into one effective bet (`odds_decimal = Π decimal_i`, `p = Π p_i`). `simulate_batch` grew a keyword-only `odds_decimal` param for derived bets like this (exactly one of american/decimal must be passed).
+- Endpoints use `Annotated[Session, Depends(get_db)]` style — idiomatic FastAPI and keeps ruff's B008 quiet.
+- API tests override `get_db` with an in-memory engine using **StaticPool** (a plain `:memory:` engine can swap connections and lose the schema mid-test).
+- EV in `/api/simulate` responses is empirical and needs `odds_american`/`win_probability`/`num_bets` passed to `calculate_metrics` — first version omitted them and returned 0.
+
+**Out of scope (per plan)**: frontend integration (Sprint 6)

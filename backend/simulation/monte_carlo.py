@@ -88,21 +88,35 @@ def simulate_once(
 
 
 def simulate_batch(
-    odds_american: int,
-    win_probability: float,
-    bankroll: float,
-    bet_size: float,
-    bet_size_type: str,
-    num_bets: int,
+    odds_american: int | None = None,
+    win_probability: float | None = None,
+    bankroll: float | None = None,
+    bet_size: float | None = None,
+    bet_size_type: str = "flat",
+    num_bets: int | None = None,
     num_simulations: int = 1000,
     seed: int | None = None,
     return_trajectories: bool = False,
+    *,
+    odds_decimal: float | None = None,
 ) -> SimulationBatchResult:
-    """Run `num_simulations` independent simulations with a shared seeded RNG."""
+    """Run `num_simulations` independent simulations with a shared seeded RNG.
+
+    Pass exactly one of odds_american / odds_decimal. Keyword-only params
+    (odds_decimal) exist for derived bets such as parlays.
+    """
     if num_simulations < 1:
         raise ValueError(f"num_simulations must be >= 1, got {num_simulations}")
+    if (odds_american is None) == (odds_decimal is None):
+        raise ValueError("Provide exactly one of odds_american / odds_decimal")
+    if odds_decimal is None:
+        assert odds_american is not None
+        odds_decimal_value = OddsConversion.american_to_decimal(odds_american)
+    else:
+        odds_decimal_value = odds_decimal
+    assert win_probability is not None and bankroll is not None and bet_size is not None
+    assert num_bets is not None
 
-    odds_decimal = OddsConversion.american_to_decimal(odds_american)
     rng = np.random.default_rng(seed)
 
     final_bankrolls: list[float] = []
@@ -110,7 +124,7 @@ def simulate_batch(
 
     for _ in range(num_simulations):
         traj = simulate_once(
-            odds_decimal,
+            odds_decimal_value,
             win_probability,
             bankroll,
             bet_size,
