@@ -136,3 +136,26 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - EV in `/api/simulate` responses is empirical and needs `odds_american`/`win_probability`/`num_bets` passed to `calculate_metrics` — first version omitted them and returned 0.
 
 **Out of scope (per plan)**: frontend integration (Sprint 6)
+
+## Sprint 6 — Dashboard Framework (completed 2026-08-22)
+
+**Delivered**
+- Simulation Workspace (`pages/SimulationWorkspace.tsx`): two-column layout — validated `SimulationForm` (odds with live implied-probability helper, win probability, bankroll, strategy select incl. Kelly/half-Kelly, bet size, bets, simulations) + results panel with metric cards
+- `ResultsDisplay`: win %, avg ending bankroll, color-coded risk of ruin (<10% green / ≤25% amber / >25% red + "aggressive" warning), EV per bet with sign coloring
+- Dark-mode-only theme via Tailwind v4 `@theme` tokens matching Product Design §6 palette (`src/index.css`)
+- `Navigation` bar with React Router routes: /, /strategies, /system-plays, /parlay (placeholders), /settings
+- `OnboardingModal`: 4-step first-run walkthrough gated on a localStorage flag, only on `/`
+- `Settings` page: default simulations/bankroll/bets persisted to localStorage; workspace form reads them as defaults
+- `types/simulation.ts` mirrors backend response schemas; `useSimulation` hook handles loading/success/error states and parses FastAPI 422 detail arrays into readable messages
+
+**Verified**
+- eslint clean; `tsc -b --noEmit` clean; vitest 16 passed; vite build OK
+- Full suite: backend 124 passed + frontend 16 passed via root `npm test`
+
+**Decisions / gotchas**
+- Settings persist to **localStorage**, not SQLite — Sprint 6 forbids DB changes and there is no settings endpoint/table yet. Revisit when a settings API exists.
+- Added deps: react-router-dom 7, tailwindcss v4 + @tailwindcss/vite, @testing-library/user-event. Vitest globals needed `"types": ["vitest/globals"]` in tsconfig once tests used bare `describe/it`.
+- Metric-card color classes live on the value element — data-testids moved onto it so class assertions work.
+- Old Sprint 0 App test (fetches /health) replaced by router/nav smoke tests; the connection-status UI returns implicitly through real API usage.
+
+**Out of scope (per plan)**: charts (Sprint 7), strategy saving (Sprint 8), System Plays UI (Sprint 10)

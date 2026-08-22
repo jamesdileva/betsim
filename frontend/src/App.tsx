@@ -1,33 +1,43 @@
-import { useEffect, useState } from "react";
-import api, { type HealthResponse } from "./services/api";
-
-type ConnectionStatus = "checking" | "connected" | "error";
+import { useState } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
+import Navigation from "./components/Navigation";
+import OnboardingModal from "./components/OnboardingModal";
+import PlaceholderPage from "./pages/PlaceholderPage";
+import Settings from "./pages/Settings";
+import SimulationWorkspace from "./pages/SimulationWorkspace";
+import { completeOnboarding, hasCompletedOnboarding } from "./services/settings";
 
 export default function App() {
-  const [status, setStatus] = useState<ConnectionStatus>("checking");
-  const [detail, setDetail] = useState<string>("");
-
-  useEffect(() => {
-    api
-      .get<HealthResponse>("/health")
-      .then((res) => {
-        setStatus("connected");
-        setDetail(`Backend status: ${res.data.status}`);
-      })
-      .catch((err: unknown) => {
-        setStatus("error");
-        setDetail(err instanceof Error ? err.message : "Unknown error");
-      });
-  }, []);
+  const [onboardingDone, setOnboardingDone] = useState(hasCompletedOnboarding);
+  const location = useLocation();
 
   return (
-    <main>
-      <h1>Betsim</h1>
-      <p data-testid="connection-status">
-        {status === "checking" && "Checking backend connection..."}
-        {status === "connected" && `Connected. ${detail}`}
-        {status === "error" && `Backend unreachable. ${detail}`}
-      </p>
-    </main>
+    <div className="flex h-full flex-col">
+      <Navigation />
+      <main className="flex-1 overflow-auto">
+        <Routes>
+          <Route path="/" element={<SimulationWorkspace />} />
+          <Route
+            path="/strategies"
+            element={<PlaceholderPage title="Strategies" sprint="8" />}
+          />
+          <Route
+            path="/system-plays"
+            element={<PlaceholderPage title="System Plays" sprint="10" />}
+          />
+          <Route path="/parlay" element={<PlaceholderPage title="Parlay Simulator" sprint="11" />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<p className="p-6 text-text-muted">Page not found.</p>} />
+        </Routes>
+      </main>
+      {!onboardingDone && location.pathname === "/" && (
+        <OnboardingModal
+          onComplete={() => {
+            completeOnboarding();
+            setOnboardingDone(true);
+          }}
+        />
+      )}
+    </div>
   );
 }

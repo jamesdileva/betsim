@@ -11,6 +11,7 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "types": ["vite/client", "vitest/globals"],
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
