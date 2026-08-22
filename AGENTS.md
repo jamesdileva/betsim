@@ -87,3 +87,28 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Batch EV is **empirical** ((mean final − start) / num_bets) rather than the theoretical flat-stake formula: it's exact-in-expectation for every staking type including Kelly, where stakes vary per bet. Theoretical formula kept as the pure `ev_per_bet()` helper.
 - `validate_bet_size(0, kelly)` is legal — Kelly ignores bet_size entirely; monte_carlo's own validate_inputs still requires bet_size > 0 at simulation time.
 - Drawdowns reported as negative dollar amounts (matches Product Design's "-45%" display convention).
+
+## Sprint 4 — Repository Layer (completed 2026-08-22)
+
+**Delivered**
+- `backend/schemas/` — Pydantic v2 Create/Read schemas for every table (+ `StrategyUpdate`): strategy, simulation, game (incl. Team), ml_model (incl. SystemPlayResult), portfolio (incl. BacktestResult, ModelEvaluation); all Read schemas use `from_attributes`
+- `backend/crud/` — seven modules covering all 16 tables:
+  - `strategy.py`: save/get/list/update/delete
+  - `simulation.py`: save run, bulk result inserts, get run + results, runs-by-strategy
+  - `odds.py`: teams, games, game odds save/query
+  - `ml_models.py`: model registry (save/get/active/archive) + predictions
+  - `system_plays.py`, `portfolios.py` (portfolio + items in one atomic save; also model evaluations), `backtest.py` (single + bulk)
+- All CRUD functions return Pydantic models and commit atomically with rollback on failure
+- Tests (`backend/crud/tests/`): own in-memory SQLite fixture (never touches the real DB), full strategy CRUD cycle, 1000-row bulk insert, join traversal strategy→runs→results, FK violation raises + session recovery, round-trips for odds/models/calibration/portfolio/backtests
+
+**Verified**
+- `ruff check`: clean; `pytest`: 110 passed (24 new)
+
+**Decisions / gotchas**
+- **SQLite ignores foreign keys unless `PRAGMA foreign_keys=ON`.** Added a connect-event listener on the main engine and the test engine — without it FK-violation tests silently pass writes. Any new engine must repeat this.
+- Same annotation-shadowing gotcha as Sprint 1 hit Pydantic too: Python 3.14's deferred annotations (PEP 649) evaluate `date | None` *after* the class attribute exists → `None | None` TypeError. Fixed in schemas with the same aliased-import pattern (`from datetime import date as dt_date`).
+- `list_strategies` tie-breaks by id desc — `created_at` has second precision so same-second rows were ambiguously ordered.
+- Test dirs got `__init__.py`: pytest raised "import file mismatch" when two packages both had `test_odds.py`.
+- Schemas created in Sprint 4 rather than Sprint 5 because acceptance criteria require CRUD to return Pydantic models.
+
+**Out of scope (per plan)**: API endpoints (Sprint 5), frontend integration (Sprint 6)
