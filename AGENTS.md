@@ -70,3 +70,20 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - `implied_prob_to_american`: boundary p = 0.5 maps to +100 (not −100) so round-trips are exact.
 - Ruined runs pad trajectory with zeros instead of truncating — Sprint 3's percentile math needs equal-length arrays across the batch.
 - Metrics/distribution intentionally deferred to Sprint 3; `simulate_batch` returns raw results only.
+
+## Sprint 3 — EV & Bankroll Calculations (completed 2026-08-22)
+
+**Delivered**
+- `backend/simulation/bankroll.py` — `calculate_stake()` moved here from monte_carlo.py (re-exported for backward compat), plus `validate_bet_size()` (percentage capped at 1.0; kelly/half_kelly ignore bet_size)
+- `backend/simulation/metrics.py` — `ev_per_bet()` (theoretical: p × profit − q × stake), `max_drawdown()` (peak-to-trough, negative dollars), `risk_of_ruin()`, `calculate_metrics()` → `Metrics` dataclass (win %, avg/median/std, min/max, ruin, avg/worst drawdown, empirical EV per bet + total, optional trajectory bands)
+- `backend/simulation/distribution.py` — `histogram()` (edges + counts, conservation-tested), `percentile_bands()` (p10/median/p90/min/max per bet index; rejects ragged input)
+- Package-level exports in `simulation/__init__.py`
+- Tests: test_bankroll.py (stake strategies moved here from test_monte_carlo.py + validation), test_metrics.py (formula exactness vs manual math, drawdown cases incl. ruin trajectory, band ordering min ≤ median ≤ max, empirical EV > 0 on +edge batch), test_distribution.py
+
+**Verified**
+- `ruff check`: clean; `pytest`: 86 passed (33 new)
+
+**Decisions / gotchas**
+- Batch EV is **empirical** ((mean final − start) / num_bets) rather than the theoretical flat-stake formula: it's exact-in-expectation for every staking type including Kelly, where stakes vary per bet. Theoretical formula kept as the pure `ev_per_bet()` helper.
+- `validate_bet_size(0, kelly)` is legal — Kelly ignores bet_size entirely; monte_carlo's own validate_inputs still requires bet_size > 0 at simulation time.
+- Drawdowns reported as negative dollar amounts (matches Product Design's "-45%" display convention).

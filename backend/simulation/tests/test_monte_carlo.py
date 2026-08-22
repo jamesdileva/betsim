@@ -5,33 +5,9 @@ import pytest
 
 from simulation.monte_carlo import (
     SimulationBatchResult,
-    calculate_stake,
     simulate_batch,
     simulate_once,
 )
-
-
-class TestCalculateStake:
-    def test_flat(self) -> None:
-        assert calculate_stake(1000, 50, "flat", 1.9091, 0.55) == 50.0
-
-    def test_percentage(self) -> None:
-        assert calculate_stake(1000, 0.05, "percentage", 1.9091, 0.55) == pytest.approx(50.0)
-
-    def test_kelly_uses_fraction_of_current_bankroll(self) -> None:
-        stake = calculate_stake(2000, 50, "kelly", 1.9091, 0.55)
-        assert stake == pytest.approx(2000 * 0.055, abs=0.5)
-
-    def test_half_kelly(self) -> None:
-        stake = calculate_stake(2000, 50, "half_kelly", 1.9091, 0.55)
-        assert stake == pytest.approx(2000 * 0.055 / 2, abs=0.5)
-
-    def test_stake_capped_at_bankroll(self) -> None:
-        assert calculate_stake(10, 500, "flat", 1.9091, 0.55) == 10.0
-
-    def test_unknown_type_raises(self) -> None:
-        with pytest.raises(ValueError):
-            calculate_stake(1000, 50, "martingale", 1.9091, 0.55)
 
 
 class TestSimulateOnce:

@@ -4,10 +4,16 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from simulation.kelly import half_kelly, kelly_criterion
+from simulation.bankroll import VALID_BET_SIZE_TYPES, calculate_stake
 from simulation.odds import OddsConversion
 
-VALID_BET_SIZE_TYPES = ("flat", "percentage", "kelly", "half_kelly")
+__all__ = [
+    "VALID_BET_SIZE_TYPES",
+    "SimulationBatchResult",
+    "calculate_stake",
+    "simulate_batch",
+    "simulate_once",
+]
 
 
 @dataclass
@@ -19,27 +25,6 @@ class SimulationBatchResult:
     num_bets: int
     seed: int | None
     trajectories: list[list[float]] = field(default_factory=list)
-
-
-def calculate_stake(
-    bankroll: float,
-    bet_size: float,
-    bet_size_type: str,
-    odds_decimal: float,
-    win_probability: float,
-) -> float:
-    """Stake for the current bet, capped at the available bankroll."""
-    if bet_size_type == "flat":
-        stake = bet_size
-    elif bet_size_type == "percentage":
-        stake = bankroll * bet_size
-    elif bet_size_type == "kelly":
-        stake = bankroll * kelly_criterion(odds_decimal, win_probability)
-    elif bet_size_type == "half_kelly":
-        stake = bankroll * half_kelly(odds_decimal, win_probability)
-    else:
-        raise ValueError(f"Unknown bet_size_type {bet_size_type!r}")
-    return min(stake, bankroll)
 
 
 def validate_inputs(
