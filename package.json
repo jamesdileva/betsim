@@ -1,0 +1,23 @@
+{
+  "name": "betsim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Betsim - Monte Carlo betting simulator (Electron + FastAPI + SQLite)",
+  "main": "frontend/electron-main.js",
+  "scripts": {
+    "install": ".venv\\Scripts\\python -m pip install -r backend/requirements.txt",
+    "postinstall": "npm install --prefix frontend",
+    "setup": "python -m venv .venv && npm run install",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run dev",
+    "dev": "concurrently -n backend,vite,electron -c blue,green,yellow \"npm run dev:backend\" \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:backend": ".venv\\Scripts\\python -m uvicorn main:app --reload --port 8000 --app-dir backend",
+    "dev:vite": "npm run dev --prefix frontend",
+    "dev:electron": "npm run electron:dev --prefix frontend",
+    "lint": ".venv\\Scripts\\python -m ruff check backend && npm run lint --prefix frontend",
+    "test": ".venv\\Scripts\\python -m pytest backend && npm run test --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

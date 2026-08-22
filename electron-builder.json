@@ -1,0 +1,20 @@
+{
+  "appId": "com.betsim.app",
+  "productName": "Betsim",
+  "files": [
+    "dist/**/*",
+    "electron-main.js"
+  ],
+  "directories": {
+    "output": "release"
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "mac": {
+    "target": ["dmg"]
+  },
+  "linux": {
+    "target": ["AppImage"]
+  }
+}
