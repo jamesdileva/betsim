@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SimulationParams } from "../types/simulation";
 import { americanToImpliedProb } from "../types/simulation";
 
@@ -19,8 +19,19 @@ interface FormState {
   numSimulations: string;
 }
 
+export interface FormValues {
+  oddsAmerican?: number;
+  winProbabilityPct?: number;
+  bankroll?: number;
+  betSize?: number;
+  betSizeType?: string;
+  numBets?: number;
+  numSimulations?: number;
+}
+
 interface SimulationFormProps {
   defaults?: Partial<Pick<SimulationParams, "bankroll" | "num_bets" | "num_simulations">>;
+  initialValues?: FormValues | null;
   onRun: (params: SimulationParams) => void;
 }
 
@@ -57,8 +68,11 @@ function validate(state: FormState): Record<string, string> {
   return errors;
 }
 
-export default function SimulationForm({ defaults, onRun }: SimulationFormProps) {
-  const [state, setState] = useState<FormState>({
+function stateFrom(
+  defaults?: SimulationFormProps["defaults"],
+  initialValues?: FormValues | null,
+): FormState {
+  const base: FormState = {
     oddsAmerican: "-110",
     winProbabilityPct: "55",
     bankroll: String(defaults?.bankroll ?? 1000),
@@ -66,8 +80,30 @@ export default function SimulationForm({ defaults, onRun }: SimulationFormProps)
     betSizeType: "flat",
     numBets: String(defaults?.num_bets ?? 100),
     numSimulations: String(defaults?.num_simulations ?? 5000),
-  });
+  };
+  if (!initialValues) return base;
+  const apply = (key: keyof FormState, value: number | string | undefined) => {
+    if (value !== undefined) base[key] = String(value);
+  };
+  apply("oddsAmerican", initialValues.oddsAmerican);
+  apply("winProbabilityPct", initialValues.winProbabilityPct);
+  apply("bankroll", initialValues.bankroll);
+  apply("betSize", initialValues.betSize);
+  if (initialValues.betSizeType) base.betSizeType = initialValues.betSizeType;
+  apply("numBets", initialValues.numBets);
+  apply("numSimulations", initialValues.numSimulations);
+  return base;
+}
+
+export default function SimulationForm({ defaults, initialValues, onRun }: SimulationFormProps) {
+  const [state, setState] = useState<FormState>(() => stateFrom(defaults, initialValues));
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setState(stateFrom(defaults, initialValues));
+    setErrors({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValues]);
 
   const impliedProb = useMemo(() => {
     const odds = Number(state.oddsAmerican);

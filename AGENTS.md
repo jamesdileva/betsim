@@ -159,3 +159,25 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Old Sprint 0 App test (fetches /health) replaced by router/nav smoke tests; the connection-status UI returns implicitly through real API usage.
 
 **Out of scope (per plan)**: charts (Sprint 7), strategy saving (Sprint 8), System Plays UI (Sprint 10)
+
+## Sprint 7 — Visualization & Charting (completed 2026-08-22)
+
+**Delivered**
+- `utils/chartData.ts` — trajectory bands → per-bet rows; histogram bins → labeled rows (counts conserved)
+- `BankrollChart` — Recharts LineChart: median (primary blue) + p10/p90 (faded blue/violet) + min/max (gray); dark tooltips, $-formatted axes
+- `DistributionChart` — BarChart of final-bankroll bins with range labels
+- `MetricsTable` — median/best/worst/std-dev/drawdowns/EV total, danger-colored losses
+- `SimulationResults` container — metric cards + both charts + table in one component (workspace now uses it; loading/placeholder states live here too)
+- `ScenarioLibrary` + `data/scenarios.ts` — 4 pre-built scenarios (NFL favorite, MMA underdog, +150 value play, Kelly grinder) that auto-fill the form via `initialValues`
+- `SimulationForm` accepts `initialValues` and re-syncs when a scenario is applied
+
+**Verified**
+- eslint clean; `tsc -b --noEmit` clean; vitest 33 passed (+17: transforms incl. bin conservation, chart rendering, metrics table, scenario library); vite build OK
+
+**Decisions / gotchas**
+- Recharts v3 does not lay out in jsdom even inside a fixed-size box — chart components accept optional `width`/`height` props that bypass `ResponsiveContainer`; tests pass fixed dimensions. Production path stays responsive.
+- Recharts v3 formatter/labelFormatter signatures changed (`ReactNode`, possibly undefined params) — typed as inferred, values coerced with `Number(value ?? 0)`.
+- Backend already returned everything needed (`trajectory` bands + `distribution` bins since Sprint 5) — no API changes required.
+- Parlay scenario deferred to Sprint 11 when the parlay builder exists.
+
+**Out of scope (per plan)**: strategy saving (Sprint 8), System Plays UI (Sprint 10)
