@@ -29,7 +29,11 @@ async function createWindow() {
     },
   });
 
-  if (process.env.VITE_DEV_SERVER_URL || !app.isPackaged) {
+  if (app.isPackaged) {
+    // production: serve the built renderer; the FastAPI backend must be
+    // running on localhost:8000 for data (started separately).
+    await win.loadFile(require("path").join(__dirname, "dist", "index.html"));
+  } else {
     await waitForDevServer(VITE_DEV_SERVER_URL);
     win.loadURL(VITE_DEV_SERVER_URL).catch(() => {
       win.loadURL("data:text/html,<h1>Betsim: Vite dev server not reachable</h1>");

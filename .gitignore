@@ -27,3 +27,7 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
+
+# Electron packaging output
+release/
+.coverage

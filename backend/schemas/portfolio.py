@@ -24,18 +24,6 @@ class PortfolioCreate(BaseModel):
     items: list[PortfolioItemCreate] = []
 
 
-class PortfolioRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    date: dt_date | None
-    total_risk: float | None
-    expected_roi: float | None
-    kelly_exposure: float | None
-    model_id: str | None
-    created_at: datetime
-
-
 class PortfolioItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -50,6 +38,19 @@ class PortfolioItemRead(BaseModel):
     ev: float | None
     recommendation_stars: int | None
     created_at: datetime
+
+
+class PortfolioRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    date: dt_date | None
+    total_risk: float | None
+    expected_roi: float | None
+    kelly_exposure: float | None
+    model_id: str | None
+    created_at: datetime
+    items: list[PortfolioItemRead] = []
 
 
 class BacktestResultCreate(BaseModel):

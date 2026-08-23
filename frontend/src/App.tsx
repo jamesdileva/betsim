@@ -4,6 +4,7 @@ import Analytics from "./pages/Analytics";
 import Navigation from "./components/Navigation";
 import OnboardingModal from "./components/OnboardingModal";
 import ParlaySimulator from "./pages/ParlaySimulator";
+import PortfolioPage from "./pages/Portfolio";
 import ResultsHistory from "./pages/ResultsHistory";
 import Settings from "./pages/Settings";
 import Strategies from "./pages/Strategies";
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/strategies" element={<Strategies />} />
           <Route path="/history" element={<ResultsHistory />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/portfolio" element={<PortfolioPage />} />
           <Route path="/system-plays" element={<SystemPlays />} />
           <Route path="/parlay" element={<ParlaySimulator />} />
           <Route path="/settings" element={<Settings />} />
@@ -41,3 +43,4 @@ export default function App() {
     </div>
   );
 }
+

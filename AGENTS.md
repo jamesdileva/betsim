@@ -312,3 +312,33 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Feature schema/extraction already landed in Sprint 9; this sprint only wired consumers.
 
 **Out of scope (per plan)**: actual training, live deployment
+
+## Sprint 14 — Intelligence Score, Portfolio & Testing (completed 2026-08-22)
+
+**Delivered**
+- `ml/recommend.py` — Intelligence Score per Product Design §9: probability 25% + simulation 25% + EV 25% (sigmoid-scaled, +10% EV ≈ 22 pts) + confidence 15% + calibration 10%; bonuses (+5 strong EV, +3 well-calibrated, +2 sim agreement); stars at 85/70/55/40; inputs clamped
+- `ml/portfolio.py` — band allocation (High ≥85: 2 bets/40%, Medium 70–84: 4 bets/30%, Long Shot 55–69: 6 bets/20%), Kelly stakes capped per band, 80% total exposure cap; persists via Sprint 4 CRUD
+- `api/portfolio.py` — `POST /api/portfolio/build` (404 unknown model), `GET /api/portfolio/latest`, `/history`, `/scored` (preview without persisting)
+- Frontend: Portfolio page (bankroll input → build, band sections, key metrics), `IntelligenceScore` breakdown component, portfolioApi client; nav link
+- Coverage tooling (pytest-cov + @vitest/coverage-v8): **backend 93%**, **frontend 80.8%** lines — report only, no CI gate (per decision)
+- Electron packaging: production load path (`loadFile dist/index.html` when packaged), `main` field in frontend package.json, `dist` / `dist:installer` scripts; **full local build verified**: `release/win-unpacked/Betsim.exe`
+
+**Verified**
+- Backend: ruff clean; pytest 195 passed (+15)
+- Frontend: eslint/tsc clean; vitest 95 passed (+7); vite build OK
+- Full suite green via root `npm test`; packaged exe produced by electron-builder
+
+**Decisions / gotchas**
+- Risk level derives from simulated risk of ruin (<10% Low / ≤25% Medium / >25% High) — the doc's EV-based risk mapping contradicts its own "risk of ruin < 10%" definition; ruin is authoritative.
+- Simulation win-rate input uses the model's latest backtest accuracy when available, else the raw predicted probability.
+- Adding `items` to `PortfolioRead` re-triggered the deferred-annotation pitfall — fixed permanently by declaring `PortfolioItemRead` before `PortfolioRead` (no forward refs).
+- `@vitest/coverage-v8` must match vitest's major version (4.x silently crashes against vitest 2.x).
+- Packaged app loads the built renderer only; the FastAPI backend still runs separately on localhost:8000 (bundling a Python runtime is future work).
+
+**Out of scope (per plan)**: actual ML training, live deployment, mobile companion
+
+---
+
+## Roadmap complete
+
+All 15 planned sprints (0–14) are done. The app covers the full loop: simulate → save strategies → calibrate → backtest → explain → score → build portfolios, with live odds collection and a packaged desktop shell.

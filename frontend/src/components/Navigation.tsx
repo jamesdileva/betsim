@@ -5,6 +5,7 @@ const LINKS = [
   { to: "/strategies", label: "Strategies" },
   { to: "/history", label: "History" },
   { to: "/analytics", label: "Analytics" },
+  { to: "/portfolio", label: "Portfolio" },
   { to: "/system-plays", label: "System Plays" },
   { to: "/parlay", label: "Parlay" },
   { to: "/settings", label: "Settings" },
