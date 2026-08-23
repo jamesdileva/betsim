@@ -28,6 +28,16 @@ def get_model(db: Session, model_id: str) -> MlModelRead | None:
     return MlModelRead.model_validate(model) if model else None
 
 
+def list_models(
+    db: Session, include_archived: bool = False
+) -> list[MlModelRead]:
+    query = db.query(MlModel)
+    if not include_archived:
+        query = query.filter(MlModel.is_archived.is_(False))
+    rows = query.order_by(MlModel.trained_at.desc().nullslast(), MlModel.name).all()
+    return [MlModelRead.model_validate(r) for r in rows]
+
+
 def get_active_model(db: Session) -> MlModelRead | None:
     """The production model (newest first)."""
     model = (

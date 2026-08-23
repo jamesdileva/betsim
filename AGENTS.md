@@ -290,3 +290,25 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 - Fair decimal odds come from the stored prediction's fair_odds_decimal, falling back to 1/p so edge/ROI still compute for bare predictions.
 
 **Out of scope (per plan)**: model retraining (Sprint 13), live deployment (Sprint 13)
+
+## Sprint 13 — ML Pipeline & Explainability (completed 2026-08-22)
+
+**Delivered**
+- `ml/models/` — `ProbabilityModel` ABC (`predict()`/`get_confidence()`, clamping helper), `UserInputModel` (wraps user probability + stated confidence), `StubModel` (deterministic placeholder)
+- `ml/pipeline.py` — `TrainingPipeline` structure; `train()` raises NotImplementedError by design, `status()` reports placeholder state
+- `ml/explainability.py` — heuristic top-factor attribution: signed impacts sorted by |weight|, edge-vs-market as the leading factor when market fair prob exists, group weights for odds/time features; explicitly labeled "not derived from a trained model"
+- `api/models.py` — `POST /api/models/predict` (source=user_input|stub; optional game_id → feature extraction from stored game+odds; persists a ModelPrediction when model_id+game_id given) and `GET /api/models/list` (+ archived filter); crud gained `list_models`
+- Schemas: `model.py` (PredictionRequest/Response, FactorOut, FeatureVector)
+- Frontend: `ExplainabilityPanel` (± direction indicators, signed % impacts, model confidence badge), model source selector (User input / Stub) on the System Plays page — calibrating now also calls /api/models/predict and shows the panel under the report
+
+**Verified**
+- Backend: ruff clean; pytest 180 passed (+19: model ABC behavior/clamping, pipeline stub, explainability ordering/signs/top-5, predict endpoint incl. persistence + validation errors, models list archived filtering)
+- Frontend: eslint/tsc clean; vitest 88 passed (+9: panel rendering/signs/confidence, page calls both APIs, stub source omits win_probability); vite build OK
+
+**Decisions / gotchas**
+- Explainability is heuristic attribution, not model introspection — honest MVP per the plan ("top factors per prediction") without pretending a trained model exists.
+- PredictionRequest keeps game_id optional so the endpoint works with bare odds; persistence requires both model_id and game_id (422 otherwise).
+- `MlModelCreate` was missing `is_archived` — added it when the list-archived-filter test caught the omission.
+- Feature schema/extraction already landed in Sprint 9; this sprint only wired consumers.
+
+**Out of scope (per plan)**: actual training, live deployment

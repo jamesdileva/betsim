@@ -15,6 +15,7 @@ class MlModelCreate(BaseModel):
     cross_validation: dict | list | None = None
     notes: str | None = None
     is_production: bool = False
+    is_archived: bool = False
     model_path: str | None = None
 
 

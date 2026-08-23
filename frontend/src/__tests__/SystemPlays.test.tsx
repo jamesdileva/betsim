@@ -4,9 +4,12 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SystemPlays from "../pages/SystemPlays";
 import { calibrate } from "../services/systemPlaysApi";
+import { predict } from "../services/mlApi";
 import type { CalibrationReport } from "../types/systemPlays";
+import type { ModelPrediction } from "../types/ml";
 
 vi.mock("../services/systemPlaysApi");
+vi.mock("../services/mlApi");
 
 const REPORT: CalibrationReport = {
   stated_probability: 0.6,
@@ -16,6 +19,17 @@ const REPORT: CalibrationReport = {
   confidence_interval_low: 0.58,
   confidence_interval_high: 0.62,
   recommendation: "Well calibrated.",
+};
+
+const PREDICTION: ModelPrediction = {
+  probability: 0.6,
+  confidence: 0.5,
+  fair_odds_decimal: 1.667,
+  ev_vs_market: null,
+  features_used: 3,
+  top_factors: [
+    { feature: "model_edge_vs_market", label: "Model edge vs. market", impact: 0.05, direction: "+" },
+  ],
 };
 
 function renderPage() {
@@ -29,6 +43,7 @@ function renderPage() {
 describe("SystemPlays page", () => {
   beforeEach(() => {
     vi.mocked(calibrate).mockResolvedValue(REPORT);
+    vi.mocked(predict).mockResolvedValue(PREDICTION);
   });
 
   it("shows placeholder before running", () => {
@@ -58,6 +73,26 @@ describe("SystemPlays page", () => {
     await userEvent.click(screen.getByRole("button", { name: "Calibrate Model" }));
     await waitFor(() =>
       expect(screen.getByTestId("report-stated")).toHaveTextContent("60.00%"),
+    );
+  });
+
+  it("requests a model prediction alongside calibration and shows explainability", async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Calibrate Model" }));
+    await waitFor(() => expect(screen.getByTestId("explainability-panel")).toBeInTheDocument());
+    expect(vi.mocked(predict)).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "user_input", win_probability: 0.6 }),
+    );
+    expect(screen.getByTestId("model-confidence")).toHaveTextContent("50%");
+  });
+
+  it("omits win_probability when stub source is selected", async () => {
+    renderPage();
+    await userEvent.click(screen.getByLabelText("Stub model"));
+    await userEvent.click(screen.getByRole("button", { name: "Calibrate Model" }));
+    await waitFor(() => expect(screen.getByTestId("explainability-panel")).toBeInTheDocument());
+    expect(vi.mocked(predict)).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "stub", win_probability: undefined }),
     );
   });
 

@@ -1,8 +1,11 @@
 import { useState } from "react";
+import ExplainabilityPanel from "../components/ExplainabilityPanel";
 import SystemPlaysResults from "../components/SystemPlaysResults";
 import { calibrate } from "../services/systemPlaysApi";
+import { predict } from "../services/mlApi";
 import { americanToImpliedProb, type BetSizeType } from "../types/simulation";
 import type { CalibrationReport } from "../types/systemPlays";
+import type { ModelPrediction } from "../types/ml";
 
 const inputClass =
   "w-full rounded-md border border-border bg-bg-tertiary px-3 py-2 text-text-primary focus:border-primary focus:outline-none";
@@ -21,6 +24,8 @@ export default function SystemPlays() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<CalibrationReport | null>(null);
+  const [modelSource, setModelSource] = useState<"user_input" | "stub">("user_input");
+  const [prediction, setPrediction] = useState<ModelPrediction | null>(null);
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -36,11 +41,14 @@ export default function SystemPlays() {
     setLoading(true);
     setError(null);
     setReport(null);
+    setPrediction(null);
+    const winProbability = Number(form.modelProbabilityPct) / 100;
+    const oddsAmerican = Number(form.oddsAmerican);
     try {
-      setReport(
-        await calibrate({
-          odds_american: Number(form.oddsAmerican),
-          win_probability: Number(form.modelProbabilityPct) / 100,
+      const [calibration, modelPrediction] = await Promise.all([
+        calibrate({
+          odds_american: oddsAmerican,
+          win_probability: winProbability,
           bankroll: Number(form.bankroll),
           bet_size: Number(form.betSize),
           bet_size_type: form.betSizeType as BetSizeType,
@@ -48,7 +56,15 @@ export default function SystemPlays() {
           num_simulations: Number(form.numSimulations),
           seed: 42,
         }),
-      );
+        predict({
+          source: modelSource,
+          win_probability:
+            modelSource === "user_input" ? winProbability : undefined,
+          odds_american: oddsAmerican,
+        }),
+      ]);
+      setReport(calibration);
+      setPrediction(modelPrediction);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -79,6 +95,29 @@ export default function SystemPlays() {
             <div>
               <label htmlFor="sp-prob" className={labelClass}>Model probability (%)</label>
               <input id="sp-prob" type="number" value={form.modelProbabilityPct} onChange={(e) => set("modelProbabilityPct")(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <span className={labelClass}>Probability source</span>
+              <div data-testid="model-source-selector" className="flex gap-4 text-sm text-text-secondary">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="model-source"
+                    checked={modelSource === "user_input"}
+                    onChange={() => setModelSource("user_input")}
+                  />
+                  User input
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="model-source"
+                    checked={modelSource === "stub"}
+                    onChange={() => setModelSource("stub")}
+                  />
+                  Stub model
+                </label>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -136,7 +175,17 @@ export default function SystemPlays() {
             Enter your probability estimate and run the engine to see how calibrated you are.
           </p>
         )}
-        {!loading && report && <SystemPlaysResults report={report} />}
+        {!loading && report && (
+          <div className="space-y-6">
+            <SystemPlaysResults report={report} />
+            {prediction && (
+              <ExplainabilityPanel
+                factors={prediction.top_factors}
+                confidence={prediction.confidence}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
