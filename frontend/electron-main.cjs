@@ -82,12 +82,76 @@ function startPackagedBackend() {
   return true;
 }
 
+function httpGet(url) {
+  return new Promise((resolve) => {
+    const req = http.get(url, { timeout: 1500 }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on("error", () => resolve(null));
+  });
+}
+
+/** Identity of whatever serves :8000 — "Betsim API", some foreign title, or
+ * null when nothing answers. Guards against foreign backends squatting the
+ * port (real incident: Career OS's orphaned server made every betsim tab
+ * fail while /api/health looked "healthy"). */
+async function portIdentity() {
+  const response = await httpGet("http://127.0.0.1:8000/openapi.json");
+  if (!response || response.status !== 200) return null;
+  try {
+    return JSON.parse(response.body)?.info?.title ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Ensure OUR backend serves :8000. Reuses an existing healthy instance;
+ * spawns one otherwise. Returns "reused" | "spawned" | "foreign" | "failed".
+ */
+async function ensureBackend() {
+  let spawned = false;
+  for (let i = 0; i < 60; i++) {
+    const identity = await portIdentity();
+    if (identity === "Betsim API") return spawned ? "spawned" : "reused";
+    if (!spawned && identity !== null) {
+      // foreign server holds the port - spawning would fail with EADDRINUSE
+      logLine(`port 8000 occupied by "${identity}"; not ours`);
+      return "foreign";
+    }
+    if (!spawned) {
+      startPackagedBackend();
+      spawned = true;
+    }
+    await sleep(500);
+  }
+  logLine("backend did not become healthy in time");
+  return spawned ? "spawned" : "failed";
+}
+
 function stopBackend() {
   if (backendProcess !== null) {
-    try {
-      process.kill(-backendProcess.pid);
-    } catch {
-      // already gone
+    if (process.platform === "win32") {
+      // negative-PID process.kill() is POSIX-only; on Windows it no-ops and
+      // leaves orphaned uvicrons squatting on :8000 (real incident)
+      spawn("taskkill", ["/PID", String(backendProcess.pid), "/T", "/F"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+    } else {
+      try {
+        process.kill(-backendProcess.pid);
+      } catch {
+        // already gone
+      }
     }
     backendProcess = null;
   }
@@ -104,10 +168,8 @@ async function createWindow() {
   });
 
   if (app.isPackaged) {
-    const spawned = startPackagedBackend();
-    logLine(`backend spawn attempted: ${spawned}`);
-    const healthy = await waitForHttp(BACKEND_HEALTH_URL);
-    logLine(`backend healthy: ${healthy}`);
+    const outcome = await ensureBackend();
+    logLine(`backend: ${outcome}`);
     try {
       await win.loadFile(path.join(__dirname, "dist", "index.html"));
       logLine("renderer loaded");
