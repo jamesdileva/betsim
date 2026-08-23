@@ -36,7 +36,10 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",  # vite dev server
+        "null",  # packaged app loads the renderer from file://
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

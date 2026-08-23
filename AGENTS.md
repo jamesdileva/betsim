@@ -342,3 +342,26 @@ Source docs live in `docs/` (sprint plan, tech spec, product design).
 ## Roadmap complete
 
 All 15 planned sprints (0–14) are done. The app covers the full loop: simulate → save strategies → calibrate → backtest → explain → score → build portfolios, with live odds collection and a packaged desktop shell.
+
+## Backlog — deferred polish (not sprint items)
+
+Items from the Product Design mockups that never had acceptance criteria, plus future-roadmap candidates. None block any Definition of Done.
+
+1. **Settings page depth** — API keys + storage location + theme toggle UI (sim defaults ship today via localStorage; no settings API exists yet)
+2. **`StrategyComparisonChart`** — overlaid trajectory chart for strategy comparison (comparison is a table today)
+3. **Portfolio / System Plays CSV export buttons** — only the workspace exports CSV
+4. **Onboarding final step pre-fill** — "Try it yourself" should load an example scenario into the form
+5. **Swagger examples** — custom request/response examples on the OpenAPI endpoints
+6. **Multi-sport enrichment** — status: the simulation core is already sport-agnostic (odds + probability math), and live odds ship NFL/NBA/MLB/NHL keys; what's actually missing is per-sport data depth (team stats, injuries feeding real ML features). Future-roadmap territory per Part 5 of the spec, not a near-term sprint.
+
+## Sentinel integration — 2026-08-23
+
+Made the packaged exe a first-class Sentinel target (`docs/integration.md`; facts in `docs/integration-notes.md`):
+
+- electron-builder output moved to root `release/win-unpacked/` (matches Sentinel's `launcher_detect.py` layouts)
+- Packaged exe now spawns its own backend: parses `--user-data-dir`, spawns sibling `.venv` uvicorn with `BETSIM_DB_PATH` inside the sandbox (hermetic DB per run), waits on `/api/health`, then renders; tree-kill cleanup takes uvicorn down with it
+- Root `install` script self-heals `.venv` before pip (Sentinel hardcodes `npm install`)
+- Packaging bugs fixed en route: `.cjs` main (ESM `require` crash), Vite `base: "./"` (blank page under file://), HashRouter ("Page not found" everywhere under file://), repo-root from exe path not asar, CORS accepts `Origin: null`
+- Full local build verified end-to-end: window renders, backend auto-starts healthy, all tabs load
+
+Sentinel side (separate repo): `testers/features/betsim.py` with two `electron=True` features — workspace simulation E2E and a screen tour across all tabs. Registered as feature-only slug `Betsim` (verified against the live DB row; casing lesson documented in the registry). Resmaker/ResMaker slug mismatch was fixed independently by jamesdileva (v1.17.19.1); features registry key aligned to match.

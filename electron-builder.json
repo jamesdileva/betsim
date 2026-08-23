@@ -3,10 +3,10 @@
   "productName": "Betsim",
   "files": [
     "dist/**/*",
-    "electron-main.js"
+    "electron-main.cjs"
   ],
   "directories": {
-    "output": "release"
+    "output": "../release"
   },
   "win": {
     "target": ["nsis"]
