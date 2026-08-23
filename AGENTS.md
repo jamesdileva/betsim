@@ -365,3 +365,18 @@ Made the packaged exe a first-class Sentinel target (`docs/integration.md`; fact
 - Full local build verified end-to-end: window renders, backend auto-starts healthy, all tabs load
 
 Sentinel side (separate repo): `testers/features/betsim.py` with two `electron=True` features — workspace simulation E2E and a screen tour across all tabs. Registered as feature-only slug `Betsim` (verified against the live DB row; casing lesson documented in the registry). Resmaker/ResMaker slug mismatch was fixed independently by jamesdileva (v1.17.19.1); features registry key aligned to match.
+
+## Sentinel integration follow-up — 2026-08-23
+
+First real smoke exposed the last Tier-0 gap: Sentinel executes the
+extracted `startup` string as a bare shell line outside npm's PATH context,
+so `"dev": "concurrently …"` failed with `'concurrently' is not recognized`.
+Fixed with `npx concurrently` (`npx` ships with Node) and verified under the
+exact failure condition (raw string via bare `cmd /c`).
+
+`docs/integration.md` rewritten from checklist to **reusable playbook**:
+Tier-0 extraction contract, neutralized-PATH command authoring rules,
+launcher_detect layouts, eight-item Electron main-process checklist (each
+rule = a bug paid for during this integration), slug-casing registry rules,
+electron feature recipe, symptom→cause→fix pitfalls table, preflight gates.
+Copy into future projects as-is.
