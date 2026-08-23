@@ -71,3 +71,31 @@ def test_refresh_without_key_returns_503(client) -> None:
     assert response.status_code == 503
     assert "BETSIM_THEODDSAPI_API_KEY" in response.json()["detail"]
 
+
+def test_scores_without_key_returns_503(client) -> None:
+    response = client.post("/api/odds/scores?sport=nfl")
+    assert response.status_code == 503
+    assert "BETSIM_THEODDSAPI_API_KEY" in response.json()["detail"]
+
+
+def test_scores_endpoint_runs_collection(monkeypatch, client) -> None:
+    from services.pipeline import ScoresReport
+
+    async def fake_collect(db, sport, collector=None, days_from=3):
+        return ScoresReport(
+            sport=sport,
+            games_finalized=2,
+            games_skipped=1,
+            backtests_created=3,
+        )
+
+    monkeypatch.setattr("config.settings.theoddsapi_api_key", "k")
+    monkeypatch.setattr("api.odds.collect_scores", fake_collect)
+
+    response = client.post("/api/odds/scores?sport=nfl&days_from=5")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["games_finalized"] == 2
+    assert body["backtests_created"] == 3
+    assert body["sport"] == "nfl"
+

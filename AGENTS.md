@@ -400,3 +400,24 @@ Copy into future projects as-is.
 - Spreads/totals are stored but the sim form still bets moneyline — a spread/totals simulator UI is future work
 
 **Still needs**: a TheOddsAPI key in `.env` to see live events (user acquiring). Next: Sprint 16 — scores collection closing the backtest loop.
+
+## Sprint 16 — Results loop: scores → final games → auto-backtests (2026-08-23)
+
+**Delivered**
+- `services/odds_api.py`: shared `_fetch_with_retries` refactor; `build_scores_url` / `fetch_scores` / `parse_scores_response` for TheOddsAPI `/v4/sports/{key}/scores/?daysFrom=N`
+- `BaseCollector.fetch_scores` (optional capability) + `TheOddsApiCollector` override
+- `pipeline.collect_scores()`: matches score entries to stored games by id and team name, sets scores + `status=final`, then fires `run_backtest(db)` (all models) — the predict → play → score → evaluate loop is now automatic end-to-end
+- Scheduler loop collects scores after odds per sport
+- `POST /api/odds/scores?sport=&days_from=` — 503 without key, 502 on provider failure, report JSON with finalized/skipped/backtest counts
+- Fixed `.env.example` documenting the wrong var name (`THEODDSAPI_API_KEY` → `BETSIM_THEODDSAPI_API_KEY`) + scheduler sports example
+
+**Verified**
+- Backend: ruff clean; pytest 205 passed (+9: scores url/parse/retry, e2e finalize+backtest incl. unknown-game skip + idempotency, endpoint 503/monkeypatched run)
+- Frontend untouched: vitest 98 passed
+
+**Decisions / gotchas**
+- Score rows are matched by team *name* against stored teams (provider returns names, not ids) — unmatched entries count as skipped rather than failing
+- Already-final games are skipped so repeated runs stay idempotent; backtest dedupe was already idempotent via model+game pair
+- Port 8000 gotcha discovered while testing the packaged exe: an orphaned foreign backend (Career OS) squatting on :8000 made health checks pass while every tab 404'd. Packaged exe now verifies the OpenAPI title is "Betsim API" before treating the port as ours; stopBackend uses taskkill tree-kill on win32 (negative-pid process.kill is POSIX-only). Fixed in a separate commit during this sprint's smoke debugging.
+
+**Out of scope**: spreads/totals simulator UI (stored markets await a future UI), injuries/stats feeds

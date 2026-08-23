@@ -22,6 +22,14 @@ class CollectionReport:
     odds_skipped: int
 
 
+@dataclass
+class ScoresReport:
+    sport: str
+    games_finalized: int
+    games_skipped: int
+    backtests_created: int
+
+
 # shared in-memory cache; entries older than the TTL read as stale/absent
 odds_cache = StaleAwareCache()
 
@@ -99,8 +107,66 @@ async def collect_and_store(
     )
 
 
+async def collect_scores(
+    db: Session,
+    sport: str,
+    collector: BaseCollector | None = None,
+    days_from: int = 3,
+) -> ScoresReport:
+    """Fetch finished-game results, finalize stored games, auto-run backtests.
+
+    Score entries are matched to stored games by id; within a game the two
+    score rows are matched to home/away by team name.
+    """
+    if collector is None:
+        if not settings.theoddsapi_api_key:
+            raise odds_api.OddsApiError("No TheOddsAPI key configured")
+        collector = TheOddsApiCollector(settings.theoddsapi_api_key)
+
+    raw_scores = await collector.fetch_scores(sport, days_from=days_from)
+
+    from models import Game
+
+    finalized = skipped = 0
+    for entry in raw_scores:
+        if not entry.get("completed"):
+            continue
+        game = db.query(Game).filter(Game.id == entry["id"]).first()
+        if game is None or game.home_team is None or game.away_team is None:
+            continue
+        by_name = {
+            str(s.get("name")): s.get("score")
+            for s in entry.get("scores", [])
+            if isinstance(s, dict)
+        }
+        home_score = by_name.get(game.home_team.name)
+        away_score = by_name.get(game.away_team.name)
+        if home_score is None or away_score is None:
+            skipped += 1
+            continue
+        if game.status != "final":
+            game.home_score = int(home_score)
+            game.away_score = int(away_score)
+            game.status = "final"
+            db.commit()
+            finalized += 1
+        else:
+            skipped += 1
+
+    from ml.backtest import run_backtest
+
+    backtests_created = run_backtest(db)
+
+    return ScoresReport(
+        sport=sport,
+        games_finalized=finalized,
+        games_skipped=skipped,
+        backtests_created=backtests_created,
+    )
+
+
 class SchedulerService:
-    """Periodically collects odds for configured sports in the background."""
+    """Periodically collects odds and results for configured sports."""
 
     def __init__(self, sports: list[str] | None = None, interval_minutes: int = 30) -> None:
         self.sports = sports or [
@@ -120,6 +186,7 @@ class SchedulerService:
                     for sport in self.sports:
                         try:
                             await collect_and_store(db, sport)
+                            await collect_scores(db, sport)
                         except Exception:  # noqa: S110 - logged via app log; keep looping
                             pass
                 finally:
@@ -135,4 +202,5 @@ class SchedulerService:
         if self._task is not None:
             self._task.cancel()
             self._task = None
+
 

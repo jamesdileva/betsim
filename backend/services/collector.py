@@ -15,6 +15,10 @@ class BaseCollector(ABC):
     async def fetch(self, sport: str) -> list[dict[str, Any]]:
         """Fetch raw provider data. Returns a list of raw game dicts."""
 
+    async def fetch_scores(self, sport: str, days_from: int = 3) -> list[dict[str, Any]]:
+        """Fetch finished-game results. Optional capability."""
+        raise NotImplementedError(f"{self.provider_name()} does not support scores")
+
     @abstractmethod
     def provider_name(self) -> str:
         """Unique provider identifier."""
@@ -40,4 +44,13 @@ class TheOddsApiCollector(BaseCollector):
             api_key=self.api_key,
             transport=self.transport,
             max_retries=self.max_retries,
+        )
+
+    async def fetch_scores(self, sport: str, days_from: int = 3) -> list[dict[str, Any]]:
+        return await odds_api.fetch_scores(
+            sport,
+            api_key=self.api_key,
+            transport=self.transport,
+            max_retries=self.max_retries,
+            days_from=days_from,
         )

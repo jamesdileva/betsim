@@ -10,7 +10,7 @@ from api.deps import get_db
 from config import settings
 from models import Game, GameOdds
 from services.cache import StaleAwareCache
-from services.pipeline import collect_and_store, odds_cache
+from services.pipeline import collect_and_store, collect_scores, odds_cache
 
 router = APIRouter()
 
@@ -98,4 +98,34 @@ async def refresh_odds(
         "odds_skipped": report.odds_skipped,
         "refreshed_at": datetime.now().isoformat(),
     }
+
+
+@router.post("/odds/scores")
+async def refresh_scores(
+    db: Annotated[Session, Depends(get_db)],
+    sport: Annotated[str, Query(max_length=50)] = "americanfootball_nfl",
+    days_from: Annotated[int, Query(ge=1, le=10)] = 3,
+) -> dict[str, Any]:
+    """Fetch finished-game results, finalize stored games, auto-run backtests."""
+    if not settings.theoddsapi_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "No TheOddsAPI key configured. "
+                + "Set BETSIM_THEODDSAPI_API_KEY (see .env.example)."
+            ),
+        )
+    try:
+        report = await collect_scores(db, sport, days_from=days_from)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Score collection failed: {exc}") from exc
+
+    return {
+        "sport": report.sport,
+        "games_finalized": report.games_finalized,
+        "games_skipped": report.games_skipped,
+        "backtests_created": report.backtests_created,
+        "refreshed_at": datetime.now().isoformat(),
+    }
+
 
