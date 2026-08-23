@@ -6,10 +6,15 @@ import SimulationForm, { type FormValues } from "../components/SimulationForm";
 import SimulationResults from "../components/SimulationResults";
 import ScenarioLibrary from "../components/ScenarioLibrary";
 import StrategyComparison from "../components/StrategyComparison";
-import type { Scenario } from "../data/scenarios";
+import OnboardingModal from "../components/OnboardingModal";
+import { SCENARIOS, type Scenario } from "../data/scenarios";
 import { useSimulation } from "../hooks/useSimulation";
 import { createStrategy } from "../services/strategiesApi";
-import { loadSettings } from "../services/settings";
+import {
+  completeOnboarding,
+  hasCompletedOnboarding,
+  loadSettings,
+} from "../services/settings";
 import type { SimulationParams } from "../types/simulation";
 
 export default function SimulationWorkspace() {
@@ -49,6 +54,17 @@ export default function SimulationWorkspace() {
       numBets: scenario.params.num_bets,
       numSimulations: scenario.params.num_simulations,
     });
+  };
+
+  // Onboarding final step pre-fills the workspace with an example (backlog #4)
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
+  const handleTryIt = () => {
+    const example = SCENARIOS.find((s) => s.id === "nfl-favorite");
+    if (example) handleApplyScenario(example);
+  };
+  const handleOnboardingComplete = () => {
+    completeOnboarding();
+    setShowOnboarding(false);
   };
 
   const handleSaveStrategy = async () => {
@@ -186,6 +202,9 @@ export default function SimulationWorkspace() {
             </div>
           </form>
         </div>
+      )}
+      {showOnboarding && (
+        <OnboardingModal onTryIt={handleTryIt} onComplete={handleOnboardingComplete} />
       )}
     </div>
   );

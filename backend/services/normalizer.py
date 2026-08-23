@@ -36,8 +36,11 @@ def _parse_timestamp(value: Any) -> datetime | None:
     return parsed
 
 
+SUPPORTED_MARKETS = ("h2h", "spreads", "totals")
+
+
 def normalize_game(raw_game: dict[str, Any]) -> NormalizedGame:
-    """Map one TheOddsAPI game dict to canonical models (h2h markets only)."""
+    """Map one TheOddsAPI game dict to canonical models (h2h/spreads/totals)."""
     game_id = str(raw_game["id"])
     sport = str(raw_game.get("sport_key") or "unknown")
     commence = _parse_timestamp(raw_game.get("commence_time"))
@@ -62,9 +65,10 @@ def normalize_game(raw_game: dict[str, Any]) -> NormalizedGame:
         sportsbook = str(book.get("key") or book.get("title") or "unknown")
         last_update = _parse_timestamp(book.get("last_update"))
         for market in book.get("markets", []):
-            if market.get("key") != "h2h":
-                continue  # MVP: moneyline only
-            market_type = "moneyline"
+            market_key = str(market.get("key") or "")
+            if market_key not in SUPPORTED_MARKETS:
+                continue
+            market_type = "moneyline" if market_key == "h2h" else market_key
             for outcome in market.get("outcomes", []):
                 american = outcome.get("price")
                 if not isinstance(american, int):
@@ -86,7 +90,6 @@ def normalize_game(raw_game: dict[str, Any]) -> NormalizedGame:
                         timestamp=last_update,
                     )
                 )
-
     import json
 
     return NormalizedGame(

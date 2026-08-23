@@ -2,6 +2,9 @@ import { useState } from "react";
 
 interface OnboardingModalProps {
   onComplete: () => void;
+  /** Called when the user finishes via "Try it yourself" so the host can
+   * pre-fill the workspace with an example scenario. */
+  onTryIt?: () => void;
 }
 
 const STEPS = [
@@ -23,7 +26,7 @@ const STEPS = [
   },
 ];
 
-export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
+export default function OnboardingModal({ onComplete, onTryIt }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -51,7 +54,10 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
           {isLast ? (
             <button
               type="button"
-              onClick={onComplete}
+              onClick={() => {
+                onTryIt?.();
+                onComplete();
+              }}
               className="rounded-md bg-primary px-4 py-2 font-semibold text-bg-primary hover:bg-primary-hover"
             >
               Try it yourself

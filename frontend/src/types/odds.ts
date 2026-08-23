@@ -28,9 +28,12 @@ export interface GamesResponse {
 
 export const SPORT_OPTIONS = [
   { value: "americanfootball_nfl", label: "NFL" },
+  { value: "americanfootball_ncaaf", label: "NCAAF" },
   { value: "basketball_nba", label: "NBA" },
   { value: "baseball_mlb", label: "MLB" },
   { value: "icehockey_nhl", label: "NHL" },
+  { value: "mma_mixed_martial_arts", label: "MMA" },
+  { value: "soccer_epl", label: "EPL" },
 ];
 
 /** Best (highest) American price per side from the latest snapshots. */

@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Analytics from "./pages/Analytics";
 import Navigation from "./components/Navigation";
-import OnboardingModal from "./components/OnboardingModal";
 import ParlaySimulator from "./pages/ParlaySimulator";
 import PortfolioPage from "./pages/Portfolio";
 import ResultsHistory from "./pages/ResultsHistory";
@@ -10,12 +8,10 @@ import Settings from "./pages/Settings";
 import Strategies from "./pages/Strategies";
 import SimulationWorkspace from "./pages/SimulationWorkspace";
 import SystemPlays from "./pages/SystemPlays";
-import { completeOnboarding, hasCompletedOnboarding } from "./services/settings";
 
+// Onboarding lives in SimulationWorkspace (it pre-fills the form on
+// "Try it yourself"), which is the "/" route.
 export default function App() {
-  const [onboardingDone, setOnboardingDone] = useState(hasCompletedOnboarding);
-  const location = useLocation();
-
   return (
     <div className="flex h-full flex-col">
       <Navigation />
@@ -32,15 +28,6 @@ export default function App() {
           <Route path="*" element={<p className="p-6 text-text-muted">Page not found.</p>} />
         </Routes>
       </main>
-      {!onboardingDone && location.pathname === "/" && (
-        <OnboardingModal
-          onComplete={() => {
-            completeOnboarding();
-            setOnboardingDone(true);
-          }}
-        />
-      )}
     </div>
   );
 }
-

@@ -24,6 +24,18 @@ describe("OnboardingModal", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
+  it("fires onTryIt when finishing via Try it yourself", async () => {
+    const onComplete = vi.fn();
+    const onTryIt = vi.fn();
+    render(<OnboardingModal onComplete={onComplete} onTryIt={onTryIt} />);
+    for (let i = 0; i < 3; i++) {
+      await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    }
+    await userEvent.click(screen.getByRole("button", { name: "Try it yourself" }));
+    expect(onTryIt).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
   it("shows progress dots advancing", async () => {
     render(<OnboardingModal onComplete={vi.fn()} />);
     expect(screen.getByTestId("onboarding-dot-0")).toHaveClass("bg-primary");

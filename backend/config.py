@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     db_path: Path = Path.home() / ".betsim" / "betsim.db"
     port: int = 8000
     theoddsapi_api_key: str = ""
+    scheduler_sports: str = (
+        "americanfootball_nfl,americanfootball_ncaaf,basketball_nba,"
+        "mma_mixed_martial_arts"
+    )
 
 
 settings = Settings()

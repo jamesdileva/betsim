@@ -74,3 +74,13 @@ def test_collect_without_key_raises_cleanly(db) -> None:
         import asyncio
 
         asyncio.run(collect_and_store(db, "nfl", collector=None))
+
+
+def test_scheduler_sports_come_from_settings() -> None:
+    from services.pipeline import SchedulerService
+
+    service = SchedulerService()
+    assert "americanfootball_nfl" in service.sports
+    assert "mma_mixed_martial_arts" in service.sports
+    custom = SchedulerService(sports=["soccer_epl"])
+    assert custom.sports == ["soccer_epl"]

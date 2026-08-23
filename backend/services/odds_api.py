@@ -13,11 +13,15 @@ class OddsApiError(Exception):
     """Raised when TheOddsAPI request fails or returns invalid data."""
 
 
-def build_odds_url(sport: str, api_key: str | None = None) -> str:
+def build_odds_url(
+    sport: str,
+    api_key: str | None = None,
+    markets: str = "h2h,spreads,totals",
+) -> str:
     key = api_key if api_key is not None else settings.theoddsapi_api_key
     return (
         f"{BASE_URL}/sports/{sport}/odds/"
-        f"?apiKey={key}&regions=us&markets=h2h&oddsFormat=american"
+        f"?apiKey={key}&regions=us&markets={markets}&oddsFormat=american"
     )
 
 

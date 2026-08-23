@@ -31,13 +31,36 @@ class TestNormalizeGame:
         assert dk_home.odds_decimal == pytest.approx(1 + 100 / 150)
         assert dk_home.implied_probability == pytest.approx(150 / 250)
 
-    def test_non_h2h_markets_ignored(self, provider_payload: list[dict]) -> None:
+    def test_spreads_and_totals_markets_normalized(self, provider_payload: list[dict]) -> None:
         game = _first_game(provider_payload)
-        game["bookmakers"][0]["markets"].append(
-            {"key": "spreads", "outcomes": [{"name": "KC -3", "price": -110}]}
+        game["bookmakers"][0]["markets"].extend(
+            [
+                {
+                    "key": "spreads",
+                    "outcomes": [
+                        {"name": "Kansas City Chiefs -3.5", "price": -105},
+                        {"name": "Buffalo Bills +3.5", "price": -115},
+                    ],
+                },
+                {
+                    "key": "totals",
+                    "outcomes": [
+                        {"name": "Over 47.5", "price": -110},
+                        {"name": "Under 47.5", "price": -110},
+                    ],
+                },
+            ]
         )
         normalized = normalize_game(game)
-        assert all(r.market_type == "moneyline" for r in normalized.odds)
+        by_type = {r.market_type for r in normalized.odds}
+        assert by_type == {"moneyline", "spreads", "totals"}
+        spread = next(
+            r
+            for r in normalized.odds
+            if r.market_type == "spreads" and r.outcome_name == "Kansas City Chiefs -3.5"
+        )
+        assert spread.sportsbook == "draftkings"
+        assert spread.implied_probability == pytest.approx(105 / 205)
 
     def test_invalid_prices_skipped(self, provider_payload: list[dict]) -> None:
         game = _first_game(provider_payload)

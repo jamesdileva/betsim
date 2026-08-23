@@ -103,7 +103,9 @@ class SchedulerService:
     """Periodically collects odds for configured sports in the background."""
 
     def __init__(self, sports: list[str] | None = None, interval_minutes: int = 30) -> None:
-        self.sports = sports or ["americanfootball_nfl", "basketball_nba"]
+        self.sports = sports or [
+            s.strip() for s in settings.scheduler_sports.split(",") if s.strip()
+        ]
         self.interval_minutes = interval_minutes
         self._task: asyncio.Task | None = None
 

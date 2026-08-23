@@ -380,3 +380,23 @@ launcher_detect layouts, eight-item Electron main-process checklist (each
 rule = a bug paid for during this integration), slug-casing registry rules,
 electron feature recipe, symptom→cause→fix pitfalls table, preflight gates.
 Copy into future projects as-is.
+
+## Sprint 15 — Multi-sport breadth + onboarding pre-fill (2026-08-23)
+
+**Delivered**
+- Sport keys expanded: MMA (`mma_mixed_martial_arts`), NCAAF, EPL added alongside NFL/NBA/MLB/NHL (frontend dropdown + backend defaults)
+- Collector now requests `h2h,spreads,totals`; normalizer maps all three market types (moneyline/spreads/totals) — schema unchanged, `market_type` was ready since Sprint 1
+- Scheduler sport list configurable via `BETSIM_SCHEDULER_SPORTS` (default: NFL, NCAAF, NBA, MMA)
+- Onboarding pre-fill (backlog #4): "Try it yourself" loads the NFL Favorite scenario into the workspace form; onboarding ownership moved from App root into SimulationWorkspace (it needs form context); completion flag unified through settings service
+- Removed the stale features-registry note: Resmaker alignment confirmed done
+
+**Verified**
+- Backend: ruff clean; pytest 196 passed (+1: spreads/totals normalization, scheduler config; URL markets assertion updated)
+- Frontend: eslint/tsc clean; vitest 98 passed (+3: onboarding pre-fill flow incl. persistence + skip-on-complete, TryIt callback)
+
+**Decisions / gotchas**
+- httpx keeps commas literal in query strings — assert `markets=h2h,spreads,totals`, not percent-encoded
+- The old "non-h2h markets ignored" test became obsolete by design; superseded by the dedicated three-market test
+- Spreads/totals are stored but the sim form still bets moneyline — a spread/totals simulator UI is future work
+
+**Still needs**: a TheOddsAPI key in `.env` to see live events (user acquiring). Next: Sprint 16 — scores collection closing the backtest loop.

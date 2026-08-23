@@ -28,8 +28,10 @@ class TestFetchOdds:
     @pytest.mark.anyio
     async def test_success_parses_json(self, provider_payload: list[dict]) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
-            assert "apiKey=test-key" in str(request.url)
-            assert "/sports/americanfootball_nfl/odds/" in str(request.url)
+            url = str(request.url)
+            assert "apiKey=test-key" in url
+            assert "/sports/americanfootball_nfl/odds/" in url
+            assert "markets=h2h,spreads,totals" in url
             return httpx.Response(200, json=provider_payload)
 
         transport = httpx.MockTransport(handler)
