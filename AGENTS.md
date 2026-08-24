@@ -421,3 +421,23 @@ Copy into future projects as-is.
 - Port 8000 gotcha discovered while testing the packaged exe: an orphaned foreign backend (Career OS) squatting on :8000 made health checks pass while every tab 404'd. Packaged exe now verifies the OpenAPI title is "Betsim API" before treating the port as ours; stopBackend uses taskkill tree-kill on win32 (negative-pid process.kill is POSIX-only). Fixed in a separate commit during this sprint's smoke debugging.
 
 **Out of scope**: spreads/totals simulator UI (stored markets await a future UI), injuries/stats feeds
+
+## Live session + post-session fixes (2026-08-23)
+
+**First real-money-style session ran end-to-end**: API key set → MLB odds collected (788 rows) → slate presented → two $50 picks simulated, registered as side-aware predictions against real game ids → next day scores pulled → games finalized → auto-backtests graded us. The full predict → play → score → evaluate loop worked on live data.
+
+**Session results (real cash vs system grades)**: user's Pirates +244 lost by one run (4-5); my Mariners −105 won 6-5. Real flat-stake net ≈ −$2.38. System grades (Kelly-sized): both recorded wins — user's away claim converted to Dodgers 60% proved correct (+10% edge call), mine +5.4%. Brier 0.186, accuracy 100% (n=2, so noise).
+
+**Bugs the session caught, all fixed:**
+1. **Side convention inversion** — away predictions stored raw as home probs, flipping correct calls into misses. `predict` now takes `side`, converts to home convention.
+2. **Self-referential backtest edge** — grading vs `1/p` makes edge exactly zero; now grades vs best stored market price for home side.
+3. **Smoke wipes production DB** — root pytest fixtures dropped all tables on `~/.betsim/betsim.db` after every test run; Sentinel smoke runs tests first → destroyed session data. Fixtures fully isolated now.
+4. **Port-squatting foreign backend** — Career OS orphan on :8000 made health checks pass while tabs 404'd; exe now verifies OpenAPI title is "Betsim API".
+5. **`stopBackend` no-op on Windows** — negative-pid kill is POSIX-only; taskkill tree-kill now.
+6. **Scores name-match fallback** — provider ids vanish from rebuilt DBs; unfinished games now finalize via team-name matching.
+7. **`daysFrom` clamp** — TheOddsAPI caps at 3.
+8. **`.env.example` wrong var name** — fixed to `BETSIM_THEODDSAPI_API_KEY`.
+
+Also noted: same-team series mean multiple games share team names within a `daysFrom` window — id-based matching is authoritative and works; name fallback is for rebuilds only.
+
+**Backlog additions**: #7 "Save Prediction" UI affordance in workspace when a live game is selected (predictions currently need API calls); #8 bet ledger for tracking fake/real stakes over time.
