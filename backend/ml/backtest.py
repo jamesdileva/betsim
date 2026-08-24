@@ -15,6 +15,7 @@ from crud.portfolios import save_model_evaluation
 from models import BacktestResult, Game, ModelEvaluation, ModelPrediction
 from schemas.portfolio import ModelEvaluationCreate
 from simulation.kelly import kelly_criterion
+from simulation.odds import OddsConversion
 
 
 def derive_outcome(game: Game) -> bool | None:
@@ -25,14 +26,38 @@ def derive_outcome(game: Game) -> bool | None:
 
 
 def _fair_decimal(
-    db: Session, model_id: str, game_id: str, predicted_probability: float
+    db: Session, model_id: str, game: Game, predicted_probability: float
 ) -> float | None:
-    """Fair decimal odds stored on the prediction, else implied by the prob."""
+    """Decimal odds to grade the pick against, in priority order:
+
+    1. Best market price for the HOME side from stored game_odds - grading
+       against the real closing line is the whole point (grading against
+       1/probability makes edge exactly zero by construction, which masked
+       every real edge in our first live session).
+    2. Fair odds stored on the prediction row.
+    3. Odds implied by the probability itself (last resort).
+    """
+    from models import GameOdds
+
+    if game.home_team is not None:
+        rows = (
+            db.query(GameOdds)
+            .filter(
+                GameOdds.game_id == game.id,
+                GameOdds.outcome_name == game.home_team.name,
+                GameOdds.odds_american.is_not(None),
+            )
+            .all()
+        )
+        if rows:
+            best = max(r.odds_american for r in rows)
+            return OddsConversion.american_to_decimal(best)
+
     prediction_row = (
         db.query(ModelPrediction)
         .filter(
             ModelPrediction.model_id == model_id,
-            ModelPrediction.game_id == game_id,
+            ModelPrediction.game_id == game.id,
         )
         .order_by(ModelPrediction.created_at.desc())
         .first()
@@ -82,7 +107,7 @@ def run_backtest(
             continue
 
         p = float(prediction.predicted_probability)
-        fair_dec = _fair_decimal(db, prediction.model_id, prediction.game_id, p)
+        fair_dec = _fair_decimal(db, prediction.model_id, game, p)
 
         edge = p * fair_dec - 1.0 if fair_dec is not None else None
         roi = None
@@ -153,3 +178,4 @@ def evaluate_model(db: Session, model_id: str) -> ModelEvaluation | None:
     evaluation_model.evaluated_at = datetime.now()
     db.commit()
     return evaluation_model
+

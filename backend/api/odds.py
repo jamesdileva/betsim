@@ -104,7 +104,7 @@ async def refresh_odds(
 async def refresh_scores(
     db: Annotated[Session, Depends(get_db)],
     sport: Annotated[str, Query(max_length=50)] = "americanfootball_nfl",
-    days_from: Annotated[int, Query(ge=1, le=10)] = 3,
+    days_from: Annotated[int, Query(ge=1, le=3)] = 3,
 ) -> dict[str, Any]:
     """Fetch finished-game results, finalize stored games, auto-run backtests."""
     if not settings.theoddsapi_api_key:

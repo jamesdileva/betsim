@@ -104,6 +104,41 @@ def test_model_id_without_game_422(db, client) -> None:
     assert response.status_code == 422
 
 
+def test_predict_away_side_converts_to_home_convention(db, client) -> None:
+    """A 40% AWAY claim is a 60% HOME claim - storing it raw inverts the pick."""
+    game_id = _seed_game_with_odds(db)
+    save_model(db, MlModelCreate(id="m9"))
+
+    response = client.post(
+        "/api/models/predict",
+        json={
+            "source": "user_input",
+            "win_probability": 0.40,
+            "side": "away",
+            "game_id": game_id,
+            "model_id": "m9",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["side"] == "away"
+    assert body["probability"] == pytest.approx(0.60)  # stored as home prob
+    assert body["side_probability"] == pytest.approx(0.40)
+
+    from crud.ml_models import list_predictions_for_game
+
+    rows = list_predictions_for_game(db, game_id, model_id="m9")
+    assert rows[-1].predicted_probability == pytest.approx(0.60)
+
+
+def test_predict_invalid_side_422(client) -> None:
+    response = client.post(
+        "/api/models/predict",
+        json={"source": "stub", "win_probability": 0.5, "side": "pitcher"},
+    )
+    assert response.status_code == 422
+
+
 def test_models_list_round_trip(db, client) -> None:
     save_model(db, MlModelCreate(id="m1", name="prod", version="1.0", is_production=True))
     save_model(db, MlModelCreate(id="m2", name="archived", is_archived=True))

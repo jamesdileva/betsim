@@ -84,6 +84,29 @@ def test_edge_and_kelly_sized_roi(db, seeded) -> None:
     assert rows["g3"].edge == pytest.approx(0.0)
 
 
+def test_edge_uses_real_market_price_not_self_implied(db, seeded) -> None:
+    """Grading against 1/p makes edge exactly zero by construction; the
+    best stored market price for the home side must be used instead."""
+    from models import Game, GameOdds
+
+    game = db.query(Game).filter_by(id="g1").one()
+    db.add(
+        GameOdds(
+            game_id="g1",
+            sportsbook="draftkings",
+            market_type="moneyline",
+            outcome_name=game.home_team.name,
+            odds_american=-120,  # market says ~54.5%, we claimed 70%
+        )
+    )
+    db.commit()
+
+    run_backtest(db, model_id=seeded)
+    row = _backtest_rows(db)["g1"]
+    # edge = 0.70 x (1 + 100/120) - 1 ~= +0.1833, NOT the zero self-implied value
+    assert row.edge == pytest.approx(0.70 * (1.0 + 100.0 / 120.0) - 1.0)
+
+
 def test_evaluate_model_metrics_exact(db, seeded) -> None:
     run_backtest(db, model_id=seeded)
     evaluation = evaluate_model(db, seeded)

@@ -65,14 +65,20 @@ def test_list_games_returns_rows_with_staleness(db, client) -> None:
     assert implied == pytest.approx(0.6)
 
 
-def test_refresh_without_key_returns_503(client) -> None:
-    # settings default to an empty key in tests
+def test_refresh_without_key_returns_503(client, monkeypatch) -> None:
+    from config import settings
+
+    # .env may supply a real key; force the no-key path deterministically
+    monkeypatch.setattr(settings, "theoddsapi_api_key", "")
     response = client.post("/api/odds/refresh?sport=nfl")
     assert response.status_code == 503
     assert "BETSIM_THEODDSAPI_API_KEY" in response.json()["detail"]
 
 
-def test_scores_without_key_returns_503(client) -> None:
+def test_scores_without_key_returns_503(client, monkeypatch) -> None:
+    from config import settings
+
+    monkeypatch.setattr(settings, "theoddsapi_api_key", "")
     response = client.post("/api/odds/scores?sport=nfl")
     assert response.status_code == 503
     assert "BETSIM_THEODDSAPI_API_KEY" in response.json()["detail"]
@@ -92,7 +98,7 @@ def test_scores_endpoint_runs_collection(monkeypatch, client) -> None:
     monkeypatch.setattr("config.settings.theoddsapi_api_key", "k")
     monkeypatch.setattr("api.odds.collect_scores", fake_collect)
 
-    response = client.post("/api/odds/scores?sport=nfl&days_from=5")
+    response = client.post("/api/odds/scores?sport=nfl&days_from=3")
     assert response.status_code == 200
     body = response.json()
     assert body["games_finalized"] == 2

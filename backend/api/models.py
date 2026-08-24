@@ -17,9 +17,24 @@ from schemas.model import FactorOut, PredictionRequest, PredictionResponse
 router = APIRouter()
 
 SOURCES = ("user_input", "stub")
+SIDES = ("home", "away")
 
 
-def _build_model(request: PredictionRequest):
+def _home_probability(request: PredictionRequest) -> float:
+    """Convert the requested side's probability to home-team convention.
+
+    An away-side claim of 40% IS a home-side claim of 60% - storing it raw
+    inverts the pick (real incident: a correct Pirates read was graded as a
+    Dodgers miss).
+    """
+    if request.win_probability is None:
+        return 0.5
+    if request.side == "away":
+        return 1.0 - request.win_probability
+    return request.win_probability
+
+
+def _build_model(request: PredictionRequest, home_probability: float):
     if request.source == "user_input":
         if request.win_probability is None:
             raise HTTPException(
@@ -27,12 +42,12 @@ def _build_model(request: PredictionRequest):
                 detail="source=user_input requires win_probability",
             )
         return UserInputModel(
-            probability=request.win_probability,
+            probability=home_probability,
             confidence=request.confidence if request.confidence is not None else 0.5,
         )
     if request.source == "stub":
         return StubModel(
-            probability=request.win_probability or 0.5,
+            probability=home_probability,
             confidence=request.confidence or 0.5,
         )
     raise HTTPException(status_code=422, detail=f"source must be one of {SOURCES}")
@@ -52,7 +67,10 @@ def _features_for(db: Session, game_id: str) -> dict[str, float | None]:
 def predict(
     request: PredictionRequest, db: Annotated[Session, Depends(get_db)]
 ) -> PredictionResponse:
-    model = _build_model(request)
+    if request.side not in SIDES:
+        raise HTTPException(status_code=422, detail=f"side must be one of {SIDES}")
+    home_probability = _home_probability(request)
+    model = _build_model(request, home_probability)
 
     features: dict[str, float | None] = {}
     market_decimal: float | None = None
@@ -67,6 +85,9 @@ def predict(
 
     probability = model.clamp(model.predict(features))
     confidence = model.clamp(model.get_confidence(features))
+    side_probability = (
+        home_probability if request.side == "home" else 1.0 - home_probability
+    )
     fair_odds = 1.0 / probability if probability > 0 else float("inf")
     ev_vs_market = probability * market_decimal - 1.0 if market_decimal else None
 
@@ -94,6 +115,8 @@ def predict(
     return PredictionResponse(
         probability=probability,
         confidence=confidence,
+        side=request.side,
+        side_probability=side_probability,
         fair_odds_decimal=fair_odds,
         ev_vs_market=ev_vs_market,
         top_factors=[FactorOut(**f) for f in top_factors],

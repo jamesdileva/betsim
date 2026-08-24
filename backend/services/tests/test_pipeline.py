@@ -10,7 +10,10 @@ from services.pipeline import collect_and_store, collect_scores
 
 
 @pytest.mark.anyio()
-async def test_collect_without_key_raises_cleanly(db) -> None:
+async def test_collect_without_key_raises_cleanly(db, monkeypatch) -> None:
+    from config import settings
+
+    monkeypatch.setattr(settings, "theoddsapi_api_key", "")
     with pytest.raises(odds_api.OddsApiError, match="No TheOddsAPI key"):
         await collect_scores(db, "nfl", collector=None)
 
@@ -72,6 +75,49 @@ async def test_line_movement_creates_new_snapshot(db, provider_payload: list[dic
 
     rows = get_odds_for_game(db, "game-abc-123")
     assert len(rows) == 6  # original 4 + moved 2
+
+
+@pytest.mark.anyio()
+async def test_collect_scores_name_match_fallback(db) -> None:
+    """After a DB rebuild the provider id may not exist locally; team-name
+    matching among unfinished games must still finalize the result."""
+    from crud.odds import save_game, save_team
+    from schemas.game import GameCreate, TeamCreate
+
+    home = save_team(db, TeamCreate(name="Seattle Mariners", sport="baseball_mlb"))
+    away = save_team(db, TeamCreate(name="Chicago Cubs", sport="baseball_mlb"))
+    save_game(
+        db,
+        GameCreate(
+            id="local-row-different-id",
+            sport="baseball_mlb",
+            home_team_id=home.id,
+            away_team_id=away.id,
+            status="scheduled",
+        ),
+    )
+    payload = [
+        {
+            "id": "provider-id-not-stored-locally",
+            "completed": True,
+            "home_team": "Seattle Mariners",
+            "away_team": "Chicago Cubs",
+            "scores": [{"name": "Seattle Mariners", "score": 5},
+                       {"name": "Chicago Cubs", "score": 3}],
+        }
+    ]
+    collector = TheOddsApiCollector(
+        api_key="k",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload)),
+    )
+    report = await collect_scores(db, "baseball_mlb", collector=collector)
+
+    assert report.games_finalized == 1
+    from models import Game
+
+    game = db.query(Game).filter_by(id="local-row-different-id").one()
+    assert game.status == "final"
+    assert (game.home_score, game.away_score) == (5, 3)
 
 
 @pytest.mark.anyio()
@@ -183,3 +229,4 @@ def test_scheduler_sports_come_from_settings() -> None:
     assert "mma_mixed_martial_arts" in service.sports
     custom = SchedulerService(sports=["soccer_epl"])
     assert custom.sports == ["soccer_epl"]
+

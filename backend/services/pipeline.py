@@ -132,6 +132,28 @@ async def collect_scores(
         if not entry.get("completed"):
             continue
         game = db.query(Game).filter(Game.id == entry["id"]).first()
+        if game is None:
+            # Provider ids can vanish locally (fresh DB after a wipe/rebuild);
+            # fall back to matching unfinished games by team names.
+            home_name = str(entry.get("home_team") or "")
+            away_name = str(entry.get("away_team") or "")
+            candidates = (
+                db.query(Game)
+                .filter(
+                    Game.sport == sport,
+                    Game.status != "final",
+                    Game.home_team_id.is_not(None),
+                    Game.away_team_id.is_not(None),
+                )
+                .all()
+            )
+            for cand in candidates:
+                if (
+                    cand.home_team.name == home_name
+                    and cand.away_team.name == away_name
+                ):
+                    game = cand
+                    break
         if game is None or game.home_team is None or game.away_team is None:
             continue
         by_name = {
